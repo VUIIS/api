@@ -12,7 +12,7 @@ def list_experiments(intf, projectid, subjectid):
              
 def list_scans(intf, projectid, subjectid, experimentid):
     post_uri_scan = '/REST/projects/'+projectid+'/subjects/'+subjectid+'/experiments/'+experimentid+'/scans'
-    scan_list = intf._get_json(post_uri_experiment)
+    scan_list = intf._get_json(post_uri_scan)
     return scan_list
 
 class SimpleXnatData(object):
