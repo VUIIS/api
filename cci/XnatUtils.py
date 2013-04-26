@@ -2,7 +2,7 @@ from pyxnat import Interface
 
 def list_subjects(intf, projectid):
     post_uri_subject = '/REST/projects/'+projectid+'/subjects'
-    subj_list = intf._get_json(post_uri_subject)
+    subject_list = intf._get_json(post_uri_subject)
     return subject_list
     
 def list_experiments(intf, projectid, subjectid):
