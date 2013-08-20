@@ -17,7 +17,7 @@ class DtiQa_Processor (ScanProcessor):
     def should_run(self, scan_dict):
         return (scan_dict['type'].upper() == 'DIF' or scan_dict['type'].upper() == 'DTI')
         
-    def can_run(self, scan_dict):
+    def can_run(self, scan):
         if (scan.resource('NIFTI').exists() and scan.resource('bval').exists() and scan.resource('bvec').exists() and \
             len(scan.resource('NIFTI').files.get()[0])>0 and len(scan.resource('bval').files.get()[0])>0 and len(scan.resource('bvec').files.get()[0])>0):
             return True
