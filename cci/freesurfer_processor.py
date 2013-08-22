@@ -40,7 +40,7 @@ class Freesurfer_Processor (SessionProcessor):
         self.fs_home = DEFAULT_FREESURFER_HOME
         self.xsitype = 'fs:fsData'
 
-    def can_run(self, assessor):
+    def has_inputs(self, assessor):
         # check for NIFTI versions of all T1s
         T1_csv = ''.join(assessor.xpath("//xnat:addParam[@name='INCLUDED_T1']/child::text()")).replace("\n","")
         T1_scan_list = T1_csv.split(',')
@@ -114,7 +114,8 @@ class Freesurfer_Processor (SessionProcessor):
             T1_csv = ",".join(map(str,T1_id_list))
             if T1_csv != '':
                 assessor.attrs.set("fs:fsData/parameters/addParam[name=INCLUDED_T1]/addField",T1_csv)
-            if self.can_run(assessor):
+                
+            if self.has_inputs(assessor):
                 assessor.attrs.set('fs:fsdata/validation/status', task.READY_TO_RUN)
             else:
                 assessor.attrs.set('fs:fsdata/validation/status', task.MISSING_INPUTS)

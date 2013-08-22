@@ -12,17 +12,27 @@ class DtiQa_Processor (ScanProcessor):
         super(DtiQa_Processor, self).__init__(DEFAULT_DTIQA_WALLTIME,DEFAULT_DTIQA_MEM,DEFAULT_DTIQA_NAME)
         self.fmriqa_path = DEFAULT_DTIQA_PATH
         self.masimatlab = DEFAULT_MASIMATLAB_PATH
-        self.xsitype = 'proc:genProcData'
         
     def should_run(self, scan_dict):
         return (scan_dict['type'].upper() == 'DIF' or scan_dict['type'].upper() == 'DTI')
         
-    def can_run(self, scan):
+    def has_inputs(self, assessor):
+        assr = assessor.label()
+        scan_label = assr.split('-x-')[3]
+        scan = assessor.parent().scan(scan_label)
         if (scan.resource('NIFTI').exists() and scan.resource('bval').exists() and scan.resource('bvec').exists() and \
-            len(scan.resource('NIFTI').files.get()[0])>0 and len(scan.resource('bval').files.get()[0])>0 and len(scan.resource('bvec').files.get()[0])>0):
+            len(scan.resource('NIFTI').files()) > 0 and len(scan.resource('bval').files()) > 0 and len(scan.resource('bvec').files()) > 0 ):
             return True
         else:
             return False
+
+#     def can_run(self, xnat, proj, subj, sess, scan):
+#         scan = xnat.select.project(proj).subj(subj).experiment(sess).scan(scan)
+#         if (scan.resource('NIFTI').exists() and scan.resource('bval').exists() and scan.resource('bvec').exists() and \
+#             len(scan.resource('NIFTI').files()) > 0 and len(scan.resource('bval').files()) > 0 and len(scan.resource('bvec').files()) > 0 ):
+#             return True
+#         else:
+#             return False
     
     def get_cmds(self,assessor,jobdir):    
         proj = assessor.parent().parent().parent().label()
@@ -32,6 +42,10 @@ class DtiQa_Processor (ScanProcessor):
         scan = assr.split('-x-')[3]
         fmriqa_path = self.fmriqa_path
         masimatlab = self.masimatlab
-        
+         
         cmd = 'python '+fmriqa_path+' -m '+masimatlab+' -p '+proj+' -d '+jobdir+' -s '+subj+' -e '+sess+' -c '+scan
         return [cmd]
+  
+#     def get_cmds(self, xnat, proj, subj, sess, scan, assr, jobdir):        
+#         cmd = 'python '+self.fmriqa_path+' -m '+self.masimatlab+' -p '+proj+' -d '+jobdir+' -s '+subj+' -e '+sess+' -c '+scan
+#         return [cmd]

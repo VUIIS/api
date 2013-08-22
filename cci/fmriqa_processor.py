@@ -14,12 +14,14 @@ class FmriQa_Processor (ScanProcessor):
         self.fmriqa_path = DEFAULT_FMRIQA_PATH
         self.masimatlab = DEFAULT_MASIMATLAB_PATH
         self.redcapkey=redcapkey
-        self.xsitype = 'proc:genProcData'
         
     def should_run(self, scan_dict):
         return ('fmri' in scan_dict['type'].lower())
         
-    def can_run(self, scan):
+    def has_inputs(self, assessor):
+        assr = assessor.label()
+        scan_label = assr.split('-x-')[3]
+        scan = assessor.parent().scan(scan_label)
         if (scan.resource('PAR').exists() and scan.resource('REC').exists()):
             return True
         else:

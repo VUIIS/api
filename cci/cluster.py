@@ -68,7 +68,6 @@ class PBS:
     def submit(self):
         try:
             cmd = 'qsub ' + self.filename
-            print 'DEBUG:running cmd:'+cmd
             output = subprocess.check_output(cmd, stderr=subprocess.STDOUT, shell=True)
             jobid = output.split('.')[0]
         except CalledProcessError:

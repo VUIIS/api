@@ -52,20 +52,11 @@ class Task(object):
                 pass
             elif astatus == MISSING_INPUTS or astatus == NEED_PREPROCESS:
                 # Check it again in case available inputs changed
-                if self.processor.can_run(self.assessor):
+                if self.has_inputs():
                     astatus = READY_TO_RUN
                     self.set_status(READY_TO_RUN)
             elif astatus == RUNNING or astatus == JOB_RUNNING:
-                # Check status on cluster
-                jobstatus = self.get_job_status()
-                if jobstatus == 'R' or jobstatus == 'Q':
-                    # Still running
-                    pass
-                elif jobstatus == 'C':
-                    # TODO: see if it failed or completed successfully, if there's a folder in UPLOAD_DIR and it's not marked as READY_TO_UPLOAD then it failed
-                    pass
-                else:
-                    print 'ERROR:unknown job status:'+jobstatus
+                astatus = self.check_running()
             elif astatus == READY_TO_UPLOAD:
                 # TODO: anything???
                 pass
@@ -122,7 +113,7 @@ class Task(object):
         if not self.assessor.exists():
             xnat_status = DOES_NOT_EXIST
         elif self.atype == 'proc:genprocdata':
-            xnat_status = self.assessor.attrs.get('proc:genprocdata/procstatus')
+            xnat_status = self.assessor.attrs.get('proc:genProcData/procstatus')
         elif self.atype == 'fs:fsdata':
             xnat_status = self.assessor.attrs.get('fs:fsdata/validation/status')
         else:
@@ -134,6 +125,9 @@ class Task(object):
             self.assessor.attrs.set('fs:fsdata/validation/status', status)
         else:
             self.assessor.attrs.set('proc:genprocdata/procstatus', status)
+            
+    def has_inputs(self):
+        return self.processor.has_inputs(self.assessor)
     
     def set_jobid(self,jobid):
         if self.atype == 'proc:genprocdata':
@@ -141,8 +135,8 @@ class Task(object):
         elif self.atype == 'fs:fsdata':
             self.assessor.attrs.set("fs:fsdata/parameters/addParam[name=jobid]/addField", jobid)
 
-    def commands(self,jobdir):
-        return self.processor.get_cmds(self.assessor,jobdir)
+    def commands(self):
+        return self.processor.get_cmds(self.assessor,self.jobdir)
     
     def pbs_path(self):
         return DEFAULT_PBS_DIR+'/'+self.assessor_label+'.pbs'
@@ -150,3 +144,17 @@ class Task(object):
     def outlog_path(self):
         return DEFAULT_OUT_DIR+'/'+self.assessor_label+'_OUTLOG.txt'
     
+    def check_running(self):
+        # Check status on cluster
+        jobstatus = self.get_job_status()
+        if jobstatus == 'R' or jobstatus == 'Q':
+            # Still running
+            return RUNNING
+        elif jobstatus == 'C':
+            # TODO: see if it failed or completed successfully, if there's a folder in UPLOAD_DIR and it's not marked as READY_TO_UPLOAD then it failed
+            return RUNNING
+        else:
+            print 'ERROR:unknown job status:'+jobstatus
+            
+            return RUNNING
+        

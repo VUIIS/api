@@ -20,7 +20,10 @@ class VbmQa_Processor (ScanProcessor):
     def should_run(self, scan_dict):
         return ('T1' in scan_dict['type'] or 'MPRAGE' in scan_dict['type'])
         
-    def can_run(self, scan):
+    def has_inputs(self, assessor):
+        assr = assessor.label()
+        scan_label = assr.split('-x-')[3]
+        scan = assessor.parent().scan(scan_label)
         if scan.resource('NIFTI').exists():
             return True
         else:
