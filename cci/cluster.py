@@ -10,6 +10,9 @@ __copyright__ = 'Copyright 2013 Vanderbilt University. All Rights Reserved'
 import subprocess
 from subprocess import CalledProcessError
 import os
+from datetime import datetime
+
+MAX_TRACE_DAYS=30
 
 def count_jobs():
     cmd = "qstat | grep $USER | wc | awk {'print $1'}"
@@ -30,8 +33,43 @@ def job_status(jobid):
         output = output.strip()
         return output
     except CalledProcessError:
-        return ''        
+        return ''      
+  
+def is_traceable_date(jobdate):
+    try:
+        trace_date = datetime.strptime(jobdate,"%Y-&m-%d")
+    except ValueError:
+        return False
+    today = datetime.today()
+    diff_days = (datetime.today() - d).days
+    return diff_days <= MAX_TRACE_DAYS
 
+def tracejob_info(jobid, jobdate):
+    d = datetime.strptime(d1, "%Y-%m-%d")
+    diff_days = (datetime.today() - d).days
+    jobinfo['mem_used'] = ''
+    jobinfo['walltime_used'] = ''
+    
+    cmd='rsh vmpsched "tracejob -n '+str(diff_days)+' '+jobid+'"'    
+    try:
+        output = subprocess.check_output(cmd, stderr=subprocess.STDOUT, shell=True)
+        
+        if 'Exit_status' in output:
+            #get the walltime used
+            tmpstr = output[0].split('resources_used.walltime=')
+            if len(tmpstr) > 1:
+                jobinfo['walltime_used'] = tmpstr[1].split('\n')
+       
+            #get the mem used
+            tmpstr = output[0].split('resources_used.mem=')
+            if len(tmpstr) > 1:
+                jobinfo['mem_used'] = tmpstr[1].split('kb')[0]+'kb'
+                
+    except CalledProcessError:
+        pass
+    
+    return jobinfo
+  
 class PBS:  
     #constructor
     def __init__(self,filename,outfile,cmds,walltime_str,mem_mb=2048,email=''):
@@ -74,3 +112,4 @@ class PBS:
             jobid = '0'
         
         return jobid
+    

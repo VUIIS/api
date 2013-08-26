@@ -7,11 +7,11 @@ USER_HOME = expanduser("~")
 DEFAULT_MASIMATLAB_PATH = os.path.join(USER_HOME,'masimatlab')
 
 class Processor(object):
-    def __init__(self,walltime_str,memreq_mb,name):
+    def __init__(self,walltime_str,memreq_mb,name,xsitype='proc:genProcData'):
         self.walltime_str=walltime_str # 00:00:00 format
         self.memreq_mb=memreq_mb  # memory required in megabytes      
         self.name=name 
-        self.xsitype = 'proc:genProcData'
+        self.xsitype = xsitype
 
     # has_inputs - does this object have the required inputs? e.g. NIFTI format of the required scan type and quality and are there no conflicting inputs, i.e. only 1 required by 2 found?
     def has_inputs(): # what other arguments here, could be Project/Subject/Session/Scan/Assessor depending on type of processor?
@@ -42,7 +42,7 @@ class ScanProcessor(Processor):
         
         return (proj_label+'-x-'+subj_label+'-x-'+sess_label+'-x-'+scan_label+'-x-'+self.name)
         
-    def get_task(self, intf, scan_dict):
+    def get_task(self, intf, scan_dict, upload_dir):
         scan = XnatUtils.get_full_object(intf,scan_dict)
         assessor_name = self.get_assessor_name(scan)
         assessor = scan.parent().assessor(assessor_name)
@@ -54,7 +54,7 @@ class ScanProcessor(Processor):
             else:
                  assessor.attrs.set('proc:genprocdata/procstatus', task.MISSING_INPUTS)
                  
-        return task.Task(self,assessor)
+        return task.Task(self,assessor,upload_dir)
         
 class SessionProcessor(Processor):
     def has_inputs():
@@ -73,7 +73,7 @@ class SessionProcessor(Processor):
         
         return (proj_label+'-x-'+subj_label+'-x-'+sess_label+'-x-'+self.name)
     
-    def get_task(self, intf, session_dict):
+    def get_task(self, intf, session_dict, upload_dir):
         session = XnatUtils.get_full_object(intf,session_dict)
         assessor_name = self.get_assessor_name(session)
         assessor = session.assessor(assessor_name)
@@ -85,7 +85,7 @@ class SessionProcessor(Processor):
             else:
                  assessor.attrs.set('proc:genprocdata/procstatus', task.MISSING_INPUTS)
                  
-        return task.Task(self,assessor)
+        return task.Task(self,assessor,upload_dir)
     
 def processors_by_type(proc_list):
     exp_proc_list = []

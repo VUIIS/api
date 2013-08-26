@@ -1,20 +1,17 @@
-import task
-import XnatUtils
-import os
 from processors import DEFAULT_MASIMATLAB_PATH,ScanProcessor
 
 DEFAULT_FMRIQA_PATH = DEFAULT_MASIMATLAB_PATH+'/trunk/xnatspiders/bin/Spider_fMRIQA.py'
-DEFAULT_FMRIQA_WALLTIME = '01:00:00'
-DEFAULT_FMRIQA_MEM = 2048
-DEFAULT_FMRIQA_NAME = 'fMRIQA'
+DEFAULT_WALLTIME = '01:00:00'
+DEFAULT_MEM = 2048
+DEFAULT_NAME = 'fMRIQA'
     
 class FmriQa_Processor (ScanProcessor):
-    def __init__(self,redcapkey=''):
-        super(FmriQa_Processor, self).__init__(DEFAULT_FMRIQA_WALLTIME,DEFAULT_FMRIQA_MEM,DEFAULT_FMRIQA_NAME)
-        self.fmriqa_path = DEFAULT_FMRIQA_PATH
-        self.masimatlab = DEFAULT_MASIMATLAB_PATH
-        self.redcapkey=redcapkey
-        
+    def __init__(self, fmriqa_path=DEFAULT_FMRIQA_PATH, masimatlab=DEFAULT_MASIMATLAB_PATH, walltime=DEFAULT_WALLTIME, mem_mb=DEFAULT_MEM, proc_name=DEFAULT_NAME, redcapkey=''):
+        super(FmriQa_Processor, self).__init__(walltime,mem_mb,proc_name)
+        self.fmriqa_path = fmriqa_path
+        self.masimatlab = masimatlab
+        self.redcapkey = redcapkey
+
     def should_run(self, scan_dict):
         return ('fmri' in scan_dict['type'].lower())
         

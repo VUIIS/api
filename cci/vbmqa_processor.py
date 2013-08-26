@@ -1,24 +1,20 @@
-import task
-import XnatUtils
-import os
 from processors import DEFAULT_MASIMATLAB_PATH,ScanProcessor
 
 DEFAULT_VBMQA_PATH = DEFAULT_MASIMATLAB_PATH+'/trunk/xnatspiders/bin/Spider_VBMQA.py'
-DEFAULT_VBMQA_WALLTIME = '01:00:00'
-DEFAULT_VBMQA_MEM = 2048
-DEFAULT_VBMQA_NAME = 'VBMQA'
-DEFAULT_SPM_PATH='/gpfs22/home/boydb1/apps/spm8'
-    
+DEFAULT_WALLTIME = '01:00:00'
+DEFAULT_MEM = 2048
+DEFAULT_NAME = 'VBMQA'
+DEFAULT_SPM_PATH='/gpfs21/scratch/mcr/spm8'
+
 class VbmQa_Processor (ScanProcessor):
-    def __init__(self):
-        super(VbmQa_Processor, self).__init__(DEFAULT_VBMQA_WALLTIME,DEFAULT_VBMQA_MEM,DEFAULT_VBMQA_NAME)
-        self.vbmqa_path = DEFAULT_VBMQA_PATH
-        self.masimatlab = DEFAULT_MASIMATLAB_PATH
-        self.xsitype = 'proc:genProcData'
-        self.spmpath = DEFAULT_SPM_PATH
+    def __init__(self, vbmqa_path=DEFAULT_VBMQA_PATH, masimatlab=DEFAULT_MASIMATLAB_PATH, walltime=DEFAULT_WALLTIME, mem_mb=DEFAULT_MEM, proc_name=DEFAULT_NAME,spm_path=DEFAULT_SPM_PATH):
+        super(VbmQa_Processor, self).__init__(walltime,mem_mb,proc_name)
+        self.vbmqa_path = vbmqa_path
+        self.masimatlab = masimatlab
+        self.spm_path = spm_path
         
     def should_run(self, scan_dict):
-        return ('T1' in scan_dict['type'] or 'MPRAGE' in scan_dict['type'])
+        return (scan_dict['type'] == 'T1' or scan_dict['type'] == 'MPRAGE')
         
     def has_inputs(self, assessor):
         assr = assessor.label()
@@ -37,8 +33,7 @@ class VbmQa_Processor (ScanProcessor):
         scan = assr.split('-x-')[3]
         vbmqa_path = self.vbmqa_path
         masimatlab = self.masimatlab
-        spmpath = self.spmpath
+        spm_path = self.spm_path
         
-        cmd = 'python '+vbmqa_path+' -m '+masimatlab+' --spm '+spmpath+' -p '+proj+' -d '+jobdir+' -s '+subj+' -e '+sess+' -c '+scan
-
+        cmd = 'python '+vbmqa_path+' -m '+masimatlab+' --spm '+spm_path+' -p '+proj+' -d '+jobdir+' -s '+subj+' -e '+sess+' -c '+scan
         return [cmd]

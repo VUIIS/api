@@ -1,8 +1,9 @@
-import task,XnatUtils
 import os
-
 from os.path import expanduser
-from processors import SessionProcessor
+
+import task
+import XnatUtils
+from processors import SessionProcessor, DEFAULT_MASIMATLAB_PATH
 
 DEFAULT_FS_WALLTIME = '48:00:00'
 DEFAULT_FS_MEM = 4096
@@ -35,9 +36,10 @@ def is_unusable(scan):
     return (scan_quality == 'unusable')
 
 class Freesurfer_Processor (SessionProcessor):
-    def __init__(self):
-        super(Freesurfer_Processor, self).__init__(DEFAULT_FS_WALLTIME,DEFAULT_FS_MEM,DEFAULT_FS_NAME)
-        self.fs_home = DEFAULT_FREESURFER_HOME
+    def __init__(self, fs_home=DEFAULT_FREESURFER_HOME, masimatlab=DEFAULT_MASIMATLAB_PATH, walltime=DEFAULT_FS_WALLTIME, mem_mb=DEFAULT_FS_MEM, proc_name=DEFAULT_FS_NAME):
+        super(Freesurfer_Processor, self).__init__(walltime,mem_mb,proc_name)
+        self.fs_home = fs_home
+        self.masimatlab = masimatlab
         self.xsitype = 'fs:fsData'
 
     def has_inputs(self, assessor):
@@ -101,7 +103,7 @@ class Freesurfer_Processor (SessionProcessor):
         T1_scan_list = sorted([x for x in T1_scan_list if not is_unusable(x)], cmp=compare_by_id_int) #TODO: handle scan ids that are not ints by implementing a natural sorting method
         return T1_scan_list
 
-    def get_task(self, intf, sess_dict):
+    def get_task(self, intf, sess_dict, upload_dir):
         session = XnatUtils.get_full_object(intf, sess_dict)
         T1_scan_list = self.get_goodt1(intf,session)
         T1_id_list = []
@@ -119,7 +121,7 @@ class Freesurfer_Processor (SessionProcessor):
                 assessor.attrs.set('fs:fsdata/validation/status', task.READY_TO_RUN)
             else:
                 assessor.attrs.set('fs:fsdata/validation/status', task.MISSING_INPUTS)
-        return task.Task(self,assessor)
+        return task.Task(self,assessor,upload_dir)
     
     def get_cmds(self,assessor,jobdir):         
         proj_label = assessor.parent().parent().parent().label()
@@ -150,6 +152,7 @@ mkdir -p {FS_DIR}"""
             
         format_dict = {'SUBJECTS_DIR' : FS_dir+'/Subjects/',
             'FREESURFER_HOME' : self.fs_home,
+            'MASIMATLAB' : self.masimatlab,
             'JOB_COMPLETED_FPATH' : jc_fpath,
             'JOB_ERROR_FPATH' : je_fpath,
             'FS_DIR'  : FS_dir,
@@ -177,7 +180,7 @@ recon-all -sd {SUBJECTS_DIR} -s {FS_LABEL} {FS_INPUTS}
 recon-all -sd {SUBJECTS_DIR} -s {FS_LABEL} -all -qcache -hippo-subfields
 
 # Create QC snaps
-export PERL5LIB=$PERL5LIB:$HOME/masimatlab/trunk/xnatspiders/bin/tools
+export PERL5LIB=$PERL5LIB:{MASIMATLAB}/trunk/xnatspiders/bin/tools
 xvfb-run --auto-servernum --server-num=1 -e {FS_DIR}/snaps_xvfb-run.err -f {FS_DIR}/snaps_xvfb-run.auth --server-args="-screen 0 1600x1280x24 -ac" snap_montage_fs5_bdb1.csh {FS_LABEL} {FS_DIR}/Subjects
 
 # Zip snaps
@@ -187,7 +190,7 @@ rm -r {FS_SUBJECT_DIR}/snapshots
 # Create QA PDFs
 xvfb-run --auto-servernum --server-num=1 -e {FS_DIR}/anat_xvfb-run.err -f {FS_DIR}/anat_xvfb-run.auth --server-args="-screen 0 1600x1280x24 -ac" \
 /gpfs20/local/centos6/matlab/2012a/bin/matlab -nodesktop -nosplash > {FS_DIR}/anatQA_matlabOutput.txt << EOF
-    addpath(genpath([getenv('HOME') '/masimatlab/trunk/xnatspiders/matlab']));
+    addpath(genpath('{MASIMATLAB}/trunk/xnatspiders/matlab'));
     % Get variables from shell:
     v1 = '{FS_SUBJECT_DIR}';
     v2 = '{FS_LABEL}';
