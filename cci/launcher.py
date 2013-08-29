@@ -13,6 +13,7 @@ import processors
 import XnatUtils
 import task
 import cluster
+from task import Task
 
 DEFAULT_QUEUE_LIMIT = 50
 DEFAULT_ROOT_JOB_DIR = '/tmp'
@@ -21,9 +22,149 @@ class Launcher(object):
     def __init__(self,queue_limit=DEFAULT_QUEUE_LIMIT, root_job_dir=DEFAULT_ROOT_JOB_DIR):
         self.queue_limit = queue_limit
         self.root_job_dir = root_job_dir
+        try:
+            # Environs
+            self.xnat_user = os.environ['XNAT_USER']
+            self.xnat_pass = os.environ['XNAT_PASS']
+            self.xnat_host = os.environ['XNAT_HOST']
+            self.upload_dir = os.environ['UPLOAD_SPIDER_DIR']
+        except KeyError as e:
+            print "You must set the environment variable %s" % str(e)
+            sys.exit(1)  
         # TODO: check for all env vars and stuff here
         
-    def get_tasks(self, xnat, project_process_dict, upload_dir):
+    def update_open_tasks(self, project_process_dict):
+        project_list = list(project_process_dict.keys())
+        task_queue = []
+                
+        try:
+            print 'Connecting to XNAT'
+            xnat = Interface(self.xnat_host, self.xnat_user, self.xnat_pass)
+            
+            print 'Getting task list...'
+            task_list = self.get_open_tasks(xnat,project_process_dict)
+            
+            #print 'Updating tasks...'
+            #for cur_task in task_list:
+            #    print '     Updating task:'+cur_task.assessor_label
+            #    task_status = cur_task.update_status()
+            #    if task_status == task.READY_TO_RUN:
+            #        task_queue.append(cur_task)
+              
+            #===== Sort the task queue as desired - random? breadth-first? depth-first? 
+            #print(str(len(task_queue))+' jobs ready to be launched')
+            #task_queue.sort()
+            
+            #===== Launch jobs
+            #cur_job_count = cluster.count_jobs()
+            #if cur_job_count == -1:
+            #    print 'ERROR:cannot get count of jobs from cluster'
+            #    return
+            #print(str(cur_job_count)+' jobs currently in queue')
+                
+            #while cur_job_count <= self.queue_limit and len(task_queue)>0:
+            #    cur_task = task_queue.pop()
+                
+                # Confirm task is still ready to run
+            #    if cur_task.get_status() != task.READY_TO_RUN:
+            #        continue
+                
+            #    print 'Launching job:'+cur_task.assessor_label+', currently '+str(cur_job_count)+' jobs in cluster queue'
+            #    success = cur_task.launch(self.root_job_dir)
+            #    if(success == True):
+            #        cur_job_count+=1
+            #    else:
+            #        print 'ERROR:failed to launch job'
+            
+        finally:                                        
+            xnat.disconnect()
+            print 'Connection to XNAT closed' 
+            
+    def get_open_tasks(self, xnat, project_process_dict):
+        task_list = []
+        project_list = list(project_process_dict.keys())
+        
+        # iterate projects
+        for projectid in project_list:  
+           # Get lists of processors for this project
+           exp_proc_list, scan_proc_list = processors.processors_by_type(project_process_dict[projectid])
+           
+           # iterate experiments
+           for exp_dict in XnatUtils.list_experiments(xnat, projectid):
+               task_list.extend(self.get_open_tasks_session(xnat, exp_dict, exp_proc_list, scan_proc_list))
+                                  
+        return task_list
+    
+    def get_open_tasks_session(self, xnat, sess_info, sess_proc_list, scan_proc_list):
+        task_list = []
+        projid = sess_info['project']
+        subjid = sess_info['subject_ID']
+        sessid = sess_info['ID']
+        
+        assr_list = XnatUtils.list_assessors(xnat, projid, subjid, sessid)
+        for assr_info in assr_list:  
+            task_proc = None
+            
+            if assr_info['procstatus'] not in task.OPEN_STATUS_LIST:
+                continue
+              
+            # Look for a match in sess processors
+            for sess_proc in sess_proc_list:
+                if sess_proc.xsitype == assr_info['xsiType'] and sess_proc.name == assr_info['proctype']:
+                    task_proc = sess_proc
+                    break
+                        
+            # Look for a match in scan processors
+            if task_proc == None:
+                for scan_proc in scan_proc_list:
+                    if scan_proc.xsitype == assr_info['xsiType'] and scan_proc.name == assr_info['proctype']:
+                        task_proc = scan_proc
+                        break
+                        
+            if task_proc == None:
+                print 'WARN:no matching processor found:'+assr_info['assessor_label']
+                continue
+          
+            # Get a new task with the matched processor
+            assr = XnatUtils.get_full_object(xnat, assr_info)
+            cur_task = Task(task_proc,assr,self.upload_dir)
+            task_list.append(cur_task)    
+            
+        return task_list
+                            
+    def get_desired_tasks_session(self, xnat, sess_info, sess_proc_list, scan_proc_list):
+        task_list = []
+        projid = sess_info['project']
+        subjid = sess_info['subject_ID']
+        sessid = sess_info['ID']
+        
+        # iterate session level processors
+        for sess_proc in sess_proc_list:       
+            if sess_proc.should_run(sess_info):
+                sess_task = sess_proc.get_task(xnat, sess_info, self.upload_dir)
+                task_list.append(sess_task)
+                        
+        # iterate scans
+        for scan_info in XnatUtils.list_scans(xnat, projid, subjid, sessid):
+            for scan_proc in scan_proc_list:
+                if scan_proc.should_run(scan_info):
+                    scan_task = scan_proc.get_task(xnat, scan_info, self.upload_dir)
+                    task_list.append(scan_task)
+        
+        return task_list
+        
+    def update_session(self, xnat, sess_info, sess_proc_list, scan_proc_list, do_launch=True):
+        task_list = self.get_session_tasks(xnat, sess_info, sess_proc_list, scan_proc_list)
+        for cur_task in task_list:
+            print '     Updating task:'+cur_task.assessor_label
+            task_status = cur_task.update_status()
+            if task_status == task.READY_TO_RUN and do_launch == True and cluster.count_jobs() < self.queue_limit:
+                success = cur_task.launch(self.root_job_dir)
+                if(success != True):
+                    # TODO: change status???
+                    print 'ERROR:failed to launch job'
+        
+    def get_desired_tasks(self, xnat, project_process_dict):
         task_list = []
         project_list = list(project_process_dict.keys())
   
@@ -31,57 +172,29 @@ class Launcher(object):
         for projectid in project_list:  
             print '===== PROJECT:'+projectid+' ====='          
             # Get lists of processors for this project
-            exp_proc_list, scan_proc_list = processors.processors_by_type(project_process_dict[projectid])
-            
-            # iterate subjects
-            for subj_dict in XnatUtils.list_subjects(xnat, projectid):
-                print '     SUBJ:'+subj_dict['label']          
+            exp_proc_list, scan_proc_list = processors.processors_by_type(project_process_dict[projectid])        
  
-                # iterate experiments
-                for exp_dict in XnatUtils.list_experiments(xnat, projectid, subj_dict['ID']):
-                    print '          SESS:'+exp_dict['label']          
+            # iterate experiments
+            for exp_dict in XnatUtils.list_experiments(xnat, projectid):
+                print '    SESS:'+exp_dict['label']     
+                task_list.extend(self.get_desired_tasks_session(xnat, exp_dict, exp_proc_list, scan_proc_list))
 
-                    # iterate experiment level processors
-                    for exp_proc in exp_proc_list:                    
-                        if exp_proc.should_run(exp_dict):
-                            exp_task = exp_proc.get_task(xnat, exp_dict, upload_dir)
-                            task_list.append(exp_task)
-                        
-                    # iterate scans
-                    for scan_dict in XnatUtils.list_scans(xnat, projectid, subj_dict['ID'], exp_dict['ID']):
-    
-                        # iterate scan level processors
-                        for scan_proc in scan_proc_list:
-                            if scan_proc.should_run(scan_dict):
-                                scan_task = scan_proc.get_task(xnat,scan_dict, upload_dir)
-                                task_list.append(scan_task)
-        
         return task_list
                                                 
     def update(self,project_process_dict):
         project_list = list(project_process_dict.keys())
         task_queue = []
-    
-        try:
-            # Environs
-            xnat_user = os.environ['XNAT_USER']
-            xnat_pass = os.environ['XNAT_PASS']
-            xnat_host = os.environ['XNAT_HOST']
-            upload_dir = os.environ['UPLOAD_SPIDER_DIR']
-        except KeyError as e:
-            print "You must set the environment variable %s" % str(e)
-            sys.exit(1)  
-            
+                
         try:
             print 'Connecting to XNAT'
-            xnat = Interface(xnat_host, xnat_user, xnat_pass)
+            xnat = Interface(self.xnat_host, self.xnat_user, self.xnat_pass)
             
             print 'Getting task list...'
-            task_list = self.get_tasks(xnat,project_process_dict, upload_dir)
+            task_list = self.get_desired_tasks(xnat,project_process_dict)
             
             print 'Updating tasks...'
             for cur_task in task_list:
-                print '     Updating task:'+cur_task.assessor_label
+                print '    Updating task:'+cur_task.assessor_label
                 task_status = cur_task.update_status()
                 if task_status == task.READY_TO_RUN:
                     task_queue.append(cur_task)
@@ -117,19 +230,10 @@ class Launcher(object):
     
     def update_only(self,project_process_dict):
         project_list = list(project_process_dict.keys())
-    
-        try:
-            # Environs
-            xnat_user = os.environ['XNAT_USER']
-            xnat_pass = os.environ['XNAT_PASS']
-            xnat_host = os.environ['XNAT_HOST']
-        except KeyError as e:
-            print "You must set the environment variable %s" % str(e)
-            sys.exit(1)  
             
         try:
             print 'Connecting to XNAT'
-            xnat = Interface(xnat_host, xnat_user, xnat_pass)
+            xnat = Interface(self.xnat_host, self.xnat_user, self.xnat_pass)
             
             print 'Getting task list'
             task_list = self.get_tasks(xnat,project_process_dict)
@@ -145,21 +249,10 @@ class Launcher(object):
     def relaunch_failed(self,project_process_dict):
         project_list = list(project_process_dict.keys())
         task_queue = []
-    
-        try:
-            # Environs
-            xnat_user = os.environ['XNAT_USER']
-            xnat_pass = os.environ['XNAT_PASS']
-            xnat_host = os.environ['XNAT_HOST']
-            upload_dir = os.environ['UPLOAD_SPIDER_DIR']
-
-        except KeyError as e:
-            print "You must set the environment variable %s" % str(e)
-            sys.exit(1)  
             
         try:
             print 'Connecting to XNAT'
-            xnat = Interface(xnat_host, xnat_user, xnat_pass)    
+            xnat = Interface(self.xnat_host, self.xnat_user, self.xnat_pass)    
                     
             print 'Getting task list...'
             task_list = self.get_tasks(xnat,project_process_dict)

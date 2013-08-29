@@ -13,7 +13,7 @@ class FmriQa_Processor (ScanProcessor):
         self.redcapkey = redcapkey
 
     def should_run(self, scan_dict):
-        return ('fmri' in scan_dict['type'].lower())
+        return ('fmri' in scan_dict['scan_type'].lower())
         
     def has_inputs(self, assessor):
         assr = assessor.label()

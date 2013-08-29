@@ -12,7 +12,7 @@ class DtiQa_Processor (ScanProcessor):
         self.masimatlab = masimatlab
         
     def should_run(self, scan_dict):
-        return (scan_dict['type'].upper() == 'DIF' or scan_dict['type'].upper() == 'DTI')
+        return (scan_dict['scan_type'].upper() == 'DIF' or scan_dict['scan_type'].upper() == 'DTI')
         
     def has_inputs(self, assessor):
         assr = assessor.label()

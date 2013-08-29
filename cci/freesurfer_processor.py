@@ -1,5 +1,6 @@
 import os
 from os.path import expanduser
+from datetime import datetime
 
 import task
 import XnatUtils
@@ -7,32 +8,15 @@ from processors import SessionProcessor, DEFAULT_MASIMATLAB_PATH
 
 DEFAULT_FS_WALLTIME = '48:00:00'
 DEFAULT_FS_MEM = 4096
-DEFAULT_FS_NAME = 'Freesurfer'
+DEFAULT_FS_NAME = 'FreeSurfer'
 DEFAULT_FREESURFER_HOME = '/scratch/mcr/freesurfer'
 
 # TODO: do we really want to run on any T1s that aren't marked unusable? or should we deal with questionable and only run on usable?
-
-def compare_by_id_int(item1, item2):
-        return cmp(int(item1['ID']), int(item2['ID']))
     
-def is_t1(scan):
-        scan_type = scan['type']
-        return (scan_type == 'T1' or scan_type == 'MPRAGE')
-        
-def is_usable(self,scan):
-        scan_quality = scan['quality']
-        return (scan_quality == 'usable')
+def is_t1(scan_type):
+    return (scan_type == 'T1' or scan_type == 'MPRAGE')
 
-def is_questionable(self,scan):
-        scan_quality = scan['quality']
-        return (scan_quality == 'questionable')
-    
-def is_questionable(scan):
-    scan_quality = scan['quality']
-    return (scan_quality == 'questionable')
-
-def is_unusable(scan):
-    scan_quality = scan['quality']
+def is_unusable(scan_quality):
     return (scan_quality == 'unusable')
 
 class Freesurfer_Processor (SessionProcessor):
@@ -42,85 +26,65 @@ class Freesurfer_Processor (SessionProcessor):
         self.masimatlab = masimatlab
         self.xsitype = 'fs:fsData'
 
-    def has_inputs(self, assessor):
-        # check for NIFTI versions of all T1s
-        T1_csv = ''.join(assessor.xpath("//xnat:addParam[@name='INCLUDED_T1']/child::text()")).replace("\n","")
-        T1_scan_list = T1_csv.split(',')
+    def has_inputs(self, assessor):  
+        session = assessor.parent()
+        T1_scan_list = self.get_goodt1(session)
         T1_scan_count = len(T1_scan_list)
-        
-        if T1_scan_count == 0 or (T1_scan_count == 1 and T1_scan_list[0] == ''): 
+        if T1_scan_count == 0: 
             return False
         
-        # Check that each T1 has NIFTI
+        T1_id_list = []
+        for T1 in T1_scan_list:
+            T1_id_list.append(T1.id())
+        T1_csv = ",".join(map(str,T1_id_list))
+        assessor.attrs.set("fs:fsData/parameters/addParam[name=INCLUDED_T1]/addField",T1_csv)
+        
+        # Check for NIFTI versions of all T1s
         T1_nifti_count = 0
-        session = assessor.parent()
-        for T1_scan in T1_scan_list:
-            cur_res = session.scan(T1_scan).resource('NIFTI')
+        for scan in T1_scan_list:
+            cur_res = scan.resource('NIFTI')
             if cur_res.exists() and len(cur_res.files().get()) > 0:
                 T1_nifti_count += 1
 
-        return(T1_nifti_count == T1_scan_count)
+        return (T1_nifti_count == T1_scan_count)
      
     def should_run(self, sess_dict): 
         # We have no restrictions on Freesurfer by default, it may run on any session and will create 
         # an assessor regardless of whether it is able to run
         return True
     
-    def get_assessor_name(self,session,T1_scan_list):
+    def get_assessor_name(self, session):            
+        # Look for existing Freesurfer
+        assessor_list = session.assessors()
+        for assr in assessor_list:
+            if assr.datatype() == self.xsitype:
+                return assr.label()
+        
+        # Create label for new assessor
         proj_label = session.parent().parent().label()
         subj_label = session.parent().label()
         sess_label = session.label()
-        
-        # Build FS label
-        T1_scan_count = len(T1_scan_list)
-        if not T1_scan_count > 0:
-            FS_label = 'NA'
-        else:        
-            FS_label = ''
-            for T1_scan in T1_scan_list:
-                FS_label = FS_label+T1_scan['ID']+'and'
-            FS_label = FS_label[:-3] # trim the last and
-        
-        OLD_FS_label = sess_label+'__FS_'+FS_label
-        FS_label = proj_label+'-x-'+subj_label+'-x-'+sess_label+'-x-'+FS_label+'-x-FS'
-
-        # Check for FS assessor with old style label
-        OLD_FS_assessor = session.assessor(OLD_FS_label)
-        if OLD_FS_assessor.exists() != 0:
-            FS_label = OLD_FS_label
-    
-        return FS_label
-    
-    def get_goodt1(self,intf,session):
-        proj_label = session.parent().parent().label()
-        subj_label = session.parent().label()
-        sess_label = session.label()
+        return (proj_label+'-x-'+subj_label+'-x-'+sess_label+'-x-'+'FS')
+            
+    def get_goodt1(self,session):
         T1_scan_list = []
-        
-        # Get only not unusable T1s
-        slist = XnatUtils.list_scans(intf, proj_label, subj_label, sess_label)
-        T1_scan_list = sorted([x for x in slist if is_t1(x)], cmp=compare_by_id_int) #TODO: handle scan ids that are not ints by implementing a natural sorting method
-        T1_scan_list = sorted([x for x in T1_scan_list if not is_unusable(x)], cmp=compare_by_id_int) #TODO: handle scan ids that are not ints by implementing a natural sorting method
+        for scan in session.scans().fetchall('obj'):
+            if is_t1(scan.attrs.get('xnat:imageScanData/type')) and not is_unusable(scan.attrs.get('xnat:imageScanData/quality')):
+                T1_scan_list.append(scan)
+                
         return T1_scan_list
 
     def get_task(self, intf, sess_dict, upload_dir):
         session = XnatUtils.get_full_object(intf, sess_dict)
-        T1_scan_list = self.get_goodt1(intf,session)
-        T1_id_list = []
-        for T1 in T1_scan_list:
-            T1_id_list.append(T1['ID'])
-        assessor_name = self.get_assessor_name(session,T1_scan_list)
+        assessor_name = self.get_assessor_name(session)
         assessor = session.assessor(assessor_name)
         if not assessor.exists():
             assessor.create(assessors='fs:fsData', **{'fs:fsData/fsversion':'0'})
-            T1_csv = ",".join(map(str,T1_id_list))
-            if T1_csv != '':
-                assessor.attrs.set("fs:fsData/parameters/addParam[name=INCLUDED_T1]/addField",T1_csv)
-                
+            assessor.attrs.set('proc:genprocdata/date', datetime.today().strftime('%Y-%m-%d'))
             if self.has_inputs(assessor):
                 assessor.attrs.set('fs:fsdata/validation/status', task.READY_TO_RUN)
             else:
-                assessor.attrs.set('fs:fsdata/validation/status', task.MISSING_INPUTS)
+                assessor.attrs.set('fs:fsdata/validation/status', task.NEED_INPUTS)
         return task.Task(self,assessor,upload_dir)
     
     def get_cmds(self,assessor,jobdir):         
@@ -189,7 +153,7 @@ rm -r {FS_SUBJECT_DIR}/snapshots
 
 # Create QA PDFs
 xvfb-run --auto-servernum --server-num=1 -e {FS_DIR}/anat_xvfb-run.err -f {FS_DIR}/anat_xvfb-run.auth --server-args="-screen 0 1600x1280x24 -ac" \
-/gpfs20/local/centos6/matlab/2012a/bin/matlab -nodesktop -nosplash > {FS_DIR}/anatQA_matlabOutput.txt << EOF
+matlab -nodesktop -nosplash > {FS_DIR}/anatQA_matlabOutput.txt << EOF
     addpath(genpath('{MASIMATLAB}/trunk/xnatspiders/matlab'));
     % Get variables from shell:
     v1 = '{FS_SUBJECT_DIR}';
@@ -224,6 +188,8 @@ if [ $?=0 ]; then
 else
         touch {JOB_ERROR_FPATH}
 fi
+
+python {MASIMATLAB}/trunk/xnatspiders/bin/tools/FreeSurfer_Finisher.py --proj_label {PROJ_LABEL} --subj_label {SUBJ_LABEL} --sess_label {SESS_LABEL} --fs_label {FS_LABEL} --sess_id {EXP_ID} --dir {FS_DIR}
 
 echo "DONE"
 """

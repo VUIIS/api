@@ -38,12 +38,12 @@ def job_status(jobid):
 def is_traceable_date(jobdate):
     try:
         trace_date = datetime.strptime(jobdate,"%Y-&m-%d")
+        today = datetime.today()
+        diff_days = (datetime.today() - d).days
+        return diff_days <= MAX_TRACE_DAYS
     except ValueError:
         return False
-    today = datetime.today()
-    diff_days = (datetime.today() - d).days
-    return diff_days <= MAX_TRACE_DAYS
-
+    
 def tracejob_info(jobid, jobdate):
     d = datetime.strptime(d1, "%Y-%m-%d")
     diff_days = (datetime.today() - d).days

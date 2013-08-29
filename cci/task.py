@@ -5,8 +5,10 @@ import os
 
 READY_TO_RUN='NeedToRun'
 READY_TO_UPLOAD='ReadyToUpload'
+UPLOAD_COMPLETE='UploadComplete'
 RUNNING='Running'
 MISSING_INPUTS='MISSING_INPUTS'
+NEED_INPUTS='NeedInputs'
 NEED_PREPROCESS='NeedPreprocess'
 COMPLETE='COMPLETE'
 UPLOADING='Uploading'
@@ -22,18 +24,36 @@ DEFAULT_OUT_DIR=os.environ['UPLOAD_SPIDER_DIR']+'/OUTLOG'
 DOES_NOT_EXIST = 'DOES_NOT_EXIST'
 READY_TO_UPLOAD_FLAG_FILENAME = 'READY_TO_UPLOAD.txt'
 ERROR = 'ERROR'
+OPEN_STATUS_LIST = [READY_TO_RUN, RUNNING, UPLOADING, JOB_RUNNING, UPLOAD_COMPLETE]
 
 class Task(object):
     def __init__(self, processor, assessor, upload_dir):
         self.processor = processor
         self.assessor = assessor
-        self.assessor_id = assessor.id() # cached for convenience
-        self.assessor_label = assessor.label() # cached for convenience
-        self.atype = processor.xsitype.lower() # cached for convenience
-        self.upload_dir = upload_dir
+        self.upload_dir = upload_dir    
+        self.atype = processor.xsitype.lower()
+
+        # Create assessor if needed
+        if not assessor.exists():
+            assessor.create(assessors=self.atype)
+            self.set_createdate()
+            if self.atype == 'proc:genprocdata':
+                assessor.attrs.set('proc:genprocdata/proctype', processor.name)
+            if processor.has_inputs(assessor):
+                self.set_status(READY_TO_RUN)
+            else:
+                self.set_status(NEED_INPUTS)
         
+        # Cache for convenience
+        self.assessor_id = assessor.id()
+        self.assessor_label = assessor.label()
+                 
     def get_processor_name(self):
         return self.processor.name
+    
+    def is_open(self):
+        astatus = self.get_status()
+        return astatus in OPEN_STATUS_LIST
     
     def check_job_usage(self):
         # If already set, do nothing
@@ -97,10 +117,12 @@ class Task(object):
         elif old_status == JOB_FAILED:
             # TODO: anything???
             self.check_job_usage()
-        elif old_status == MISSING_INPUTS or old_status == NEED_PREPROCESS:
+        elif old_status == MISSING_INPUTS or old_status == NEED_PREPROCESS or old_status == NEED_INPUTS:
             # Check it again in case available inputs changed
             if self.has_inputs():
                 new_status = READY_TO_RUN
+            else:
+                new_status = NEED_INPUTS
         elif old_status == RUNNING or old_status == JOB_RUNNING:
             new_status = self.check_running()
         elif old_status == READY_TO_UPLOAD:
@@ -113,7 +135,7 @@ class Task(object):
             print 'ERROR:unknown status:'+old_status
             
         if (new_status != old_status):
-            print('DEBUG:changing status from '+old_status+' to '+new_status)
+            print('INFO:changing status from '+old_status+' to '+new_status)
             self.set_status(new_status)
             
         return new_status
@@ -171,6 +193,22 @@ class Task(object):
 
         return today_str
     
+    def get_createdate(self):
+        createdate = ''
+        if self.atype == 'proc:genprocdata':
+            createdate = self.assessor.attrs.get('proc:genProcData/date')
+        elif self.atype == 'fs:fsdata':
+            createdate = self.assessor.attrs.get('fs:fsData/date')
+        return createdate
+    
+    def set_createdate(self):
+        today_str = str(date.today())
+        if self.atype == 'proc:genprocdata':
+            self.assessor.attrs.set('proc:genProcData/date', today_str)
+        elif self.atype == 'fs:fsdata':
+            self.assessor.attrs.set('fs:fsData/date', today_str)
+        return today_str
+    
     def get_status(self):
         if not self.assessor.exists():
             xnat_status = DOES_NOT_EXIST
@@ -204,7 +242,7 @@ class Task(object):
         return DEFAULT_PBS_DIR+'/'+self.assessor_label+'.pbs'
     
     def outlog_path(self):
-        return DEFAULT_OUT_DIR+'/'+self.assessor_label+'_OUTLOG.txt'
+        return DEFAULT_OUT_DIR+'/'+self.assessor_label+'.output'
     
     def ready_flag_exists(self):
         flagfile = self.upload_dir+'/'+self.assessor_label+'/'+READY_TO_UPLOAD_FLAG_FILENAME

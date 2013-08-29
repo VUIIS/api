@@ -14,7 +14,7 @@ class VbmQa_Processor (ScanProcessor):
         self.spm_path = spm_path
         
     def should_run(self, scan_dict):
-        return (scan_dict['type'] == 'T1' or scan_dict['type'] == 'MPRAGE')
+        return (scan_dict['scan_type'] == 'T1' or scan_dict['scan_type'] == 'MPRAGE')
         
     def has_inputs(self, assessor):
         assr = assessor.label()

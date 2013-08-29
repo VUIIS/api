@@ -2,6 +2,7 @@ import task
 import os
 import XnatUtils
 from os.path import expanduser
+from datetime import datetime
 
 USER_HOME = expanduser("~")
 DEFAULT_MASIMATLAB_PATH = os.path.join(USER_HOME,'masimatlab')
@@ -34,26 +35,17 @@ class ScanProcessor(Processor):
     def __init__(self,walltime_str,memreq_mb,name):
         super(ScanProcessor, self).__init__(walltime_str, memreq_mb, name)
          
-    def get_assessor_name(self,scan):
-        proj_label = scan.parent().parent().parent().label()
-        subj_label = scan.parent().parent().label()
-        sess_label = scan.parent().label()
-        scan_label = scan.label()
-        
+    def get_assessor_name(self,scan_dict):
+        subj_label = scan_dict['subject_label']
+        sess_label = scan_dict['session_label']
+        proj_label = scan_dict['project_label']
+        scan_label = scan_dict['scan_label']
         return (proj_label+'-x-'+subj_label+'-x-'+sess_label+'-x-'+scan_label+'-x-'+self.name)
         
     def get_task(self, intf, scan_dict, upload_dir):
         scan = XnatUtils.get_full_object(intf,scan_dict)
-        assessor_name = self.get_assessor_name(scan)
+        assessor_name = self.get_assessor_name(scan_dict)
         assessor = scan.parent().assessor(assessor_name)
-        if not assessor.exists():
-            assessor.create(assessors='proc:genprocdata')
-            assessor.attrs.set('proc:genprocdata/proctype', self.name)
-            if self.has_inputs(assessor):
-                 assessor.attrs.set('proc:genprocdata/procstatus', task.READY_TO_RUN)
-            else:
-                 assessor.attrs.set('proc:genprocdata/procstatus', task.MISSING_INPUTS)
-                 
         return task.Task(self,assessor,upload_dir)
         
 class SessionProcessor(Processor):
@@ -66,25 +58,16 @@ class SessionProcessor(Processor):
     def __init__(self,walltime_str,memreq_mb,name):
         super(SessionProcessor, self).__init__(walltime_str,memreq_mb,name)
         
-    def get_assessor_name(self,session):  
-        proj_label = session.parent().parent().label()
-        subj_label = session.parent().label()
-        sess_label = session.label()
-        
+    def get_assessor_name(self,session_dict):  
+        proj_label = session_dict['project']
+        subj_label = session_dict['subject_label']
+        sess_label = session_dict['label']  
         return (proj_label+'-x-'+subj_label+'-x-'+sess_label+'-x-'+self.name)
     
     def get_task(self, intf, session_dict, upload_dir):
         session = XnatUtils.get_full_object(intf,session_dict)
-        assessor_name = self.get_assessor_name(session)
+        assessor_name = self.get_assessor_name(session_dict)
         assessor = session.assessor(assessor_name)
-        if not assessor.exists():
-            assessor.create(assessors='proc:genprocdata')
-            assessor.attrs.set('proc:genprocdata/proctype', self.name)
-            if self.has_inputs(assessor):
-                 assessor.attrs.set('proc:genprocdata/procstatus', task.READY_TO_RUN)
-            else:
-                 assessor.attrs.set('proc:genprocdata/procstatus', task.MISSING_INPUTS)
-                 
         return task.Task(self,assessor,upload_dir)
     
 def processors_by_type(proc_list):
