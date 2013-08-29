@@ -15,7 +15,7 @@ from datetime import datetime
 MAX_TRACE_DAYS=30
 
 def count_jobs():
-    cmd = "qstat | grep $USER | wc | awk {'print $1'}"
+    cmd = "qstat | grep $USER | wc -l"
     
     try:
         output = subprocess.check_output(cmd, stderr=subprocess.STDOUT, shell=True)
