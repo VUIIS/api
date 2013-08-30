@@ -3,27 +3,30 @@ from cluster import PBS
 from datetime import date
 import os
 
-READY_TO_RUN='NeedToRun'
-READY_TO_UPLOAD='ReadyToUpload'
+READY_TO_RUN='NeedToRun' # assessor that is ready to be launch on the cluster (ACCRE). All the input data for the process to run are there.
+NEED_INPUTS='NeedInputs' # assessor where input data are missing from a scan, multiple scans or other assessor.
+JOB_RUNNING='JOB_RUNNING' # the job has been submitted on the cluster and is running right now.
+JOB_FAILED='JOB_FAILED' # the job failed on the cluster.
+READY_TO_UPLOAD='ReadyToUpload' # Job done, waiting for the Spider to upload the results
+UPLOADING='Uploading' # in the process of uploading the resources on XNAT.
+COMPLETE='Complete' # the assessors contains all the files. The upload and the job are done.  
+NEEDS_QA='Needs QA' # For FS, the complete status
+PASSED_QA='Passed' # QA status set by the Image Analyst after looking at the results.
+FAILED='Failed' # QA status set by the Image Analyst after looking at the results.
 UPLOAD_COMPLETE='UploadComplete'
 RUNNING='Running'
-MISSING_INPUTS='MISSING_INPUTS'
 NEED_INPUTS='NeedInputs'
+
+MISSING_INPUTS='MISSING_INPUTS'
 NEED_PREPROCESS='NeedPreprocess'
-COMPLETE='COMPLETE'
-UPLOADING='Uploading'
-FAILED='Failed'
-JOB_FAILED='JOB_FAILED'
 FAILED_NEEDS_REPROC='Failed-needs reprocessing'
-JOB_RUNNING='JOB_RUNNING'
-NEEDS_QA='Needs QA'
-PASSED_QA='Passed'
 PASSED_EDITED_QA='Passed with edits'
+DOES_NOT_EXIST='DOES_NOT_EXIST'
+ERROR='ERROR'
+
 DEFAULT_PBS_DIR=os.environ['UPLOAD_SPIDER_DIR']+'/PBS'
 DEFAULT_OUT_DIR=os.environ['UPLOAD_SPIDER_DIR']+'/OUTLOG'
-DOES_NOT_EXIST = 'DOES_NOT_EXIST'
 READY_TO_UPLOAD_FLAG_FILENAME = 'READY_TO_UPLOAD.txt'
-ERROR = 'ERROR'
 OPEN_STATUS_LIST = [READY_TO_RUN, RUNNING, UPLOADING, JOB_RUNNING, UPLOAD_COMPLETE]
 
 class Task(object):
@@ -38,7 +41,7 @@ class Task(object):
             assessor.create(assessors=self.atype)
             self.set_createdate()
             if self.atype == 'proc:genprocdata':
-                assessor.attrs.set('proc:genprocdata/proctype', processor.name)
+                assessor.attrs.set('proc:genprocdata/proctype', self.get_processor_name())
             if processor.has_inputs(assessor):
                 self.set_status(READY_TO_RUN)
             else:
@@ -68,7 +71,7 @@ class Task(object):
         
         jobinfo = cluster.tracejob_info(self.get_jobid(), jobstartdate)
         if jobinfo['mem_used'] != '': 
-            memusedmb = str(int(jobinfo['mem_used'])/1024)
+            memusedmb = str(int(jobinfo['mem_used'].split('kb')[0])/1024)
             self.set_memusedmb(memusedmb)
         if jobinfo['walltime_used'] != '':
             self.set_walltime(jobinfo['walltime_used'])
@@ -76,30 +79,30 @@ class Task(object):
     def get_memusedmb(self):
         memusedmb = ''
         if self.atype == 'proc:genprocdata':
-            memusedmb = self.assessor.attrs.get('proc:genProcData/memusedmb')
+            memusedmb = self.assessor.attrs.get('proc:genprocdata/memusedmb')
         elif self.atype == 'fs:fsdata':
             memusedmb = ''.join(self.assessor.xpath("//xnat:addParam[@name='memusedmb']/child::text()")).replace("\n","")
         return memusedmb
     
     def set_memusedmb(self,memusedmb):
         if self.atype == 'proc:genprocdata':
-            self.assessor.attrs.set('proc:genProcData/memusedmb', memusedmb)
+            self.assessor.attrs.set('proc:genprocdata/memusedmb', memusedmb)
         elif self.atype == 'fs:fsdata':
             self.assessor.attrs.set("fs:fsdata/parameters/addParam[name=memusedmb]/addField", memusedmb)
             
     def get_walltime(self):
         walltime = ''
         if self.atype == 'proc:genprocdata':
-            walltime = self.assessor.attrs.get('proc:genProcData/walltime')
+            walltime = self.assessor.attrs.get('proc:genprocdata/walltimeused')
         elif self.atype == 'fs:fsdata':
-            walltime = ''.join(self.assessor.xpath("//xnat:addParam[@name='walltime']/child::text()")).replace("\n","")
+            walltime = ''.join(self.assessor.xpath("//xnat:addParam[@name='walltimeused']/child::text()")).replace("\n","")
         return walltime
     
     def set_walltime(self,walltime):
         if self.atype == 'proc:genprocdata':
-            self.assessor.attrs.set('proc:genProcData/walltime', walltime)
+            self.assessor.attrs.set('proc:genprocdata/walltimeused', walltime)
         elif self.atype == 'fs:fsdata':
-            self.assessor.attrs.set("fs:fsdata/parameters/addParam[name=walltime]/addField", walltime)
+            self.assessor.attrs.set("fs:fsdata/parameters/addParam[name=walltimeused]/addField", walltime)
 
     def update_status(self):                
         old_status = self.get_status()
@@ -108,14 +111,11 @@ class Task(object):
         if old_status == READY_TO_RUN:
             # TODO: anything, not yet???
             pass
-        elif old_status.upper() == COMPLETE or old_status == PASSED_QA or old_status == PASSED_EDITED_QA or old_status == NEEDS_QA:
-            # TODO: check that memused and walltime are complete, if not get with tracejob
-            pass
+        elif old_status == COMPLETE or old_status == PASSED_QA or old_status == PASSED_EDITED_QA or old_status == NEEDS_QA:
+            self.check_job_usage()
         elif old_status == FAILED or old_status == FAILED_NEEDS_REPROC:
-            # TODO: check that memused and walltime are complete, if not get with tracejob
             self.check_job_usage()
         elif old_status == JOB_FAILED:
-            # TODO: anything???
             self.check_job_usage()
         elif old_status == MISSING_INPUTS or old_status == NEED_PREPROCESS or old_status == NEED_INPUTS:
             # Check it again in case available inputs changed
@@ -246,7 +246,6 @@ class Task(object):
     
     def ready_flag_exists(self):
         flagfile = self.upload_dir+'/'+self.assessor_label+'/'+READY_TO_UPLOAD_FLAG_FILENAME
-        print 'DEBUG:checking for flagfile:'+flagfile
         return os.path.isfile(flagfile)
 
     def check_running(self):

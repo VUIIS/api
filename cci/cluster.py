@@ -37,31 +37,28 @@ def job_status(jobid):
   
 def is_traceable_date(jobdate):
     try:
-        trace_date = datetime.strptime(jobdate,"%Y-&m-%d")
-        today = datetime.today()
-        diff_days = (datetime.today() - d).days
-        return diff_days <= MAX_TRACE_DAYS
+        trace_date = datetime.strptime(jobdate,"%Y-%m-%d")
+        diff_days = (datetime.today() - trace_date).days
+        return (diff_days <= MAX_TRACE_DAYS)
     except ValueError:
         return False
     
 def tracejob_info(jobid, jobdate):
-    d = datetime.strptime(d1, "%Y-%m-%d")
-    diff_days = (datetime.today() - d).days
-    jobinfo['mem_used'] = ''
-    jobinfo['walltime_used'] = ''
+    d = datetime.strptime(jobdate, "%Y-%m-%d")
+    diff_days = (datetime.today() - d).days + 1
+    jobinfo = {'mem_used' : '', 'walltime_used' : ''}
     
-    cmd='rsh vmpsched "tracejob -n '+str(diff_days)+' '+jobid+'"'    
+    cmd='rsh vmpsched "tracejob -n '+str(diff_days)+' '+jobid+'"'
     try:
-        output = subprocess.check_output(cmd, stderr=subprocess.STDOUT, shell=True)
-        
+        output = subprocess.check_output(cmd, stderr=subprocess.STDOUT, shell=True)        
         if 'Exit_status' in output:
             #get the walltime used
-            tmpstr = output[0].split('resources_used.walltime=')
+            tmpstr = output.split('resources_used.walltime=')
             if len(tmpstr) > 1:
-                jobinfo['walltime_used'] = tmpstr[1].split('\n')
+                jobinfo['walltime_used'] = tmpstr[1].split('\n')[0]
        
             #get the mem used
-            tmpstr = output[0].split('resources_used.mem=')
+            tmpstr = output.split('resources_used.mem=')
             if len(tmpstr) > 1:
                 jobinfo['mem_used'] = tmpstr[1].split('kb')[0]+'kb'
                 

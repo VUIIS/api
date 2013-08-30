@@ -4,25 +4,23 @@ DEFAULT_FMRIQA_PATH = DEFAULT_MASIMATLAB_PATH+'/trunk/xnatspiders/bin/Spider_fMR
 DEFAULT_WALLTIME = '01:00:00'
 DEFAULT_MEM = 2048
 DEFAULT_NAME = 'fMRIQA'
+DEFAULT_SCAN_TYPES = ['FMRI', 'REST', 'FMRI_RESTING', 'RESTING']
     
 class FmriQa_Processor (ScanProcessor):
-    def __init__(self, fmriqa_path=DEFAULT_FMRIQA_PATH, masimatlab=DEFAULT_MASIMATLAB_PATH, walltime=DEFAULT_WALLTIME, mem_mb=DEFAULT_MEM, proc_name=DEFAULT_NAME, redcapkey=''):
+    def __init__(self, fmriqa_path=DEFAULT_FMRIQA_PATH, masimatlab=DEFAULT_MASIMATLAB_PATH, walltime=DEFAULT_WALLTIME, mem_mb=DEFAULT_MEM, proc_name=DEFAULT_NAME, scan_types=DEFAULT_SCAN_TYPES, redcapkey=None):
         super(FmriQa_Processor, self).__init__(walltime,mem_mb,proc_name)
         self.fmriqa_path = fmriqa_path
         self.masimatlab = masimatlab
         self.redcapkey = redcapkey
+        self.scan_types = scan_types
 
     def should_run(self, scan_dict):
-        return ('fmri' in scan_dict['scan_type'].lower())
+        return (scan_dict['scan_type'].upper() in self.scan_types)
         
     def has_inputs(self, assessor):
-        assr = assessor.label()
-        scan_label = assr.split('-x-')[3]
+        scan_label = assessor.label().split('-x-')[3]
         scan = assessor.parent().scan(scan_label)
-        if (scan.resource('PAR').exists() and scan.resource('REC').exists()):
-            return True
-        else:
-            return False
+        return (scan.resource('PAR').exists() and scan.resource('REC').exists())
     
     def get_cmds(self,assessor,jobdir):
         proj = assessor.parent().parent().parent().label()
@@ -35,6 +33,6 @@ class FmriQa_Processor (ScanProcessor):
         masimatlab = self.masimatlab
         
         cmd = 'python '+fmriqa_path+' -m '+masimatlab+' -p '+proj+' -d '+jobdir+' -s '+subj+' -e '+sess+' -c '+scan
-        if redcapkey != '':
+        if redcapkey != None:
             cmd +=' -k '+redcapkey
         return [cmd]

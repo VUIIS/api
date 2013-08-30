@@ -10,21 +10,23 @@ DEFAULT_FS_WALLTIME = '48:00:00'
 DEFAULT_FS_MEM = 4096
 DEFAULT_FS_NAME = 'FreeSurfer'
 DEFAULT_FREESURFER_HOME = '/scratch/mcr/freesurfer'
+DEFAULT_SCAN_TYPES = ['T1', 'MPRAGE']
 
 # TODO: do we really want to run on any T1s that aren't marked unusable? or should we deal with questionable and only run on usable?
     
-def is_t1(scan_type):
-    return (scan_type == 'T1' or scan_type == 'MPRAGE')
+def is_t1(scan_type, scan_type_list):
+    return (scan_type.upper() in scan_type_list)
 
 def is_unusable(scan_quality):
     return (scan_quality == 'unusable')
 
 class Freesurfer_Processor (SessionProcessor):
-    def __init__(self, fs_home=DEFAULT_FREESURFER_HOME, masimatlab=DEFAULT_MASIMATLAB_PATH, walltime=DEFAULT_FS_WALLTIME, mem_mb=DEFAULT_FS_MEM, proc_name=DEFAULT_FS_NAME):
+    def __init__(self, fs_home=DEFAULT_FREESURFER_HOME, masimatlab=DEFAULT_MASIMATLAB_PATH, walltime=DEFAULT_FS_WALLTIME, mem_mb=DEFAULT_FS_MEM, proc_name=DEFAULT_FS_NAME, scan_types=DEFAULT_SCAN_TYPES):
         super(Freesurfer_Processor, self).__init__(walltime,mem_mb,proc_name)
         self.fs_home = fs_home
         self.masimatlab = masimatlab
         self.xsitype = 'fs:fsData'
+        self.scan_types = scan_types
 
     def has_inputs(self, assessor):  
         session = assessor.parent()
@@ -69,7 +71,7 @@ class Freesurfer_Processor (SessionProcessor):
     def get_goodt1(self,session):
         T1_scan_list = []
         for scan in session.scans().fetchall('obj'):
-            if is_t1(scan.attrs.get('xnat:imageScanData/type')) and not is_unusable(scan.attrs.get('xnat:imageScanData/quality')):
+            if is_t1(scan.attrs.get('xnat:imageScanData/type'), self.scan_types) and not is_unusable(scan.attrs.get('xnat:imageScanData/quality')):
                 T1_scan_list.append(scan)
                 
         return T1_scan_list
@@ -80,7 +82,7 @@ class Freesurfer_Processor (SessionProcessor):
         assessor = session.assessor(assessor_name)
         if not assessor.exists():
             assessor.create(assessors='fs:fsData', **{'fs:fsData/fsversion':'0'})
-            assessor.attrs.set('proc:genprocdata/date', datetime.today().strftime('%Y-%m-%d'))
+            assessor.attrs.set('fs:fsData/date', datetime.today().strftime('%Y-%m-%d'))
             if self.has_inputs(assessor):
                 assessor.attrs.set('fs:fsdata/validation/status', task.READY_TO_RUN)
             else:
