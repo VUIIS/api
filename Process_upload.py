@@ -127,8 +127,6 @@ def set_check_assessor_status(assessor_label_list,emailaddress):
         xnat = Interface(VUIISxnat_host, VUIISxnat_user, VUIISxnat_pwd)
         #Get the Project Name, the subject label, the experiment label and the assessor label from the file name :
         for assessor_label in assessor_label_list:
-            print 'DEBUG:setting status on assessor:'+assessor_label
-
             assessor_path=UploadDir+'/'+assessor_label
             labels=assessor_label.split('-x-')
             ProjectName=labels[0]
@@ -187,8 +185,6 @@ def set_check_assessor_status(assessor_label_list,emailaddress):
     return new_assessor_list
 
 def Uploading_Assessor(xnat,assessor_path,ProjectName,Subject,Experiment,assessor_label):
-    print 'DEBUG:uploading assessor:'+assessor_path
-
     #SNAPSHOTS :
     #Check if the SNAPSHOTS folder exists, if not create one from PDF if pdf exists :
     if not os.path.exists(assessor_path+'/SNAPSHOTS/') and os.path.exists(assessor_path+'/PDF/'):
@@ -498,16 +494,12 @@ if __name__ == '__main__':
                 print 'WARNING: No data need to be upload.\n'
             else:
                 #Get the assessor label from the directory :
-                print 'DEBUG:getting assessor list from folder'
                 assessor_label_in_dir_list=get_assessor_name_from_folder()
-                print 'DEBUG:getting outlog list from folder' 
                 #Get the list of OUTLOG which need to be upload:
                 outlog_list=get_outlog_from_folder()
                 #Get the list of OUTLOG which need to be upload:
-                print 'DEBUG:getting pbs list from folder' 
                 pbs_list=get_pbs_from_folder()
                 #Check the status of the assessor and set the assessor to upload if needed :
-                print 'DEBUG:checking assessor status' 
                 assessor_label_upload_list=set_check_assessor_status(assessor_label_in_dir_list,emailaddress)
                 
                 #Start the process to upload
@@ -518,7 +510,6 @@ if __name__ == '__main__':
                     ################# 1) Upload the assessor data ###############
                     #For each assessor label that need to be upload :
                     for assessor_label in assessor_label_upload_list:
-                        print 'DEBUG:uploading assessor:'+assessor_label 
                         assessor_path=UploadDir+'/'+assessor_label
                         if os.path.isdir(assessor_path):
                             #Get the Project Name, the subject label, the experiment label and the assessor label from the folder name :
