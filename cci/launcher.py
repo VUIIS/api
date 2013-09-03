@@ -15,7 +15,7 @@ import task
 import cluster
 from task import Task
 
-DEFAULT_QUEUE_LIMIT = 50
+DEFAULT_QUEUE_LIMIT = 1000
 DEFAULT_ROOT_JOB_DIR = '/tmp'
 
 #TODO: add sort options
