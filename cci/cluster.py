@@ -48,7 +48,7 @@ def tracejob_info(jobid, jobdate):
     diff_days = (datetime.today() - d).days + 1
     jobinfo = {'mem_used' : '', 'walltime_used' : ''}
     
-    cmd='rsh vmpsched "tracejob -n '+str(diff_days)+' '+jobid+'"'
+    cmd = 'rsh vmpsched "tracejob -n '+str(diff_days)+' '+jobid+'"'
     try:
         output = subprocess.check_output(cmd, stderr=subprocess.STDOUT, shell=True)        
         if 'Exit_status' in output:
@@ -65,6 +65,9 @@ def tracejob_info(jobid, jobdate):
     except CalledProcessError:
         pass
     
+    if jobinfo['walltime_used'] == '' and diff_days > 3: 
+        jobinfo['walltime_used'] = 'NotFound'
+
     return jobinfo
   
 class PBS:  

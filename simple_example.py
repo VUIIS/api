@@ -20,4 +20,4 @@ pp = {'NewhouseCC' : [freesurfer, dti, fmri, vbm],
       'GNB' :  [freesurfer]}
 
 # Launch jobs
-Launcher().update(pp)
+Launcher(pp).update()

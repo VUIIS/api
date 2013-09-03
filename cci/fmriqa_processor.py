@@ -20,7 +20,7 @@ class FmriQa_Processor (ScanProcessor):
     def has_inputs(self, assessor):
         scan_label = assessor.label().split('-x-')[3]
         scan = assessor.parent().scan(scan_label)
-        return (scan.resource('PAR').exists() and scan.resource('REC').exists())
+        return ((scan.resource('PAR').exists() and scan.resource('REC').exists()) or scan.resource('NIFTI').exists())
     
     def get_cmds(self,assessor,jobdir):
         proj = assessor.parent().parent().parent().label()

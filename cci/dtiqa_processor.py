@@ -32,7 +32,7 @@ class DtiQa_Processor (ScanProcessor):
         sess = assessor.parent().label()
         assr = assessor.label()
         scan = assr.split('-x-')[3]
-        fmriqa_path = self.fmriqa_path
+        dtiqa_path = self.dtiqa_path
         masimatlab = self.masimatlab
          
         cmd = 'python '+dtiqa_path+' -m '+masimatlab+' -p '+proj+' -d '+jobdir+' -s '+subj+' -e '+sess+' -c '+scan

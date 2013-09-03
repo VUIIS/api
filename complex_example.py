@@ -14,6 +14,8 @@ dti = DtiQa_Processor(walltime='30:00:00',mem_mb=4096, dtiqa_path='/home/boydb1/
 
 vbm = VbmQa_Processor(spm_path='/gpfs22/home/boydb1/apps/spm8')
 
+fmri = FmriQa_Processor(redcapkey=CCM_QA_API_KEY, scan_types=['1.2 fmri_179_DYN_2000_TR_SENSE', 'FMRI_TASK', '1.2 fmri_179_DYN_2000_TR_SENSE', '1.2_FMRI_150_DYN_2000_TR_SENSE', 'N-BACK','POSNER','FMRI','FMRI_RESTING','FMRI_VCR','FMRI_NBACK','FMRI_EMOPIC','FMRI_EDP','FMRI_Task','TLT_EPI_1','TLT_EPI_2','TLT_EPI_3','TLT_EPI_4'])
+
 # Configure a custom function for should_run
 class GNB_Freesurfer_Processor(Freesurfer_Processor):
     def should_run(self, sess_info):
@@ -25,30 +27,21 @@ class GNB_Freesurfer_Processor(Freesurfer_Processor):
         
 GNB_freesurfer = GNB_Freesurfer_Processor()
 
-# Configure a custom function for should_run
-class CCM_FmriQa_Processor(FmriQa_Processor):
-    TYPE_LIST = ['N-BACK', 'POSNER', 'fMRI_Resting', 'fMRI_VCR', 'fMRI_nback', 'fMRI_EMOPIC', 'fMRI_EDP', 'fMRI_Task', 'TLT_EPI_1', 'TLT_EPI_2', 'TLT_EPI_3',  'TLT_EPI_4']
-    def should_run(self, scan_info):
-        return (scan_info['scan_type'] in self.TYPE_LIST)
-
-CCM_fmri = CCM_FmriQa_Processor(redcapkey=CCM_QA_API_KEY)
-
 # Set up processors for projects
-pp = {'NewhouseCC' : [freesurfer, dti, CCM_fmri, vbm],
-      'NewhousePL' : [freesurfer, dti, CCM_fmri],
-      'NewhouseBC' : [freesurfer, dti, CCM_fmri],
-      'NewhouseMDDHx' : [freesurfer, dti, CCM_fmri, vbm],
-      'TAYLOR' : [freesurfer, dti, CCM_fmri], 
-      'GNB_V' : [freesurfer, dti, CCM_fmri],
-      'GNB' :  [GNB_freesurfer]}
-
-# Set up processors for projects
-pp = {'NewhouseBC' : [freesurfer, CCM_fmri],
-      'NewhouseMDDHx' : [freesurfer, CCM_fmri]}
+pp = {'NewhouseCC' : [freesurfer, dti, fmri, vbm],
+      'NewhousePL' : [freesurfer, dti, fmri],
+      'NewhouseBC' : [freesurfer, dti, fmri],
+      'NewhouseMDDHx' : [freesurfer, dti, fmri, vbm],
+      'TAYLOR' : [freesurfer, dti, fmri], 
+      'GNB_V' : [freesurfer, dti, fmri],
+      'GNB' :  [GNB_freesurfer],
+      'R21Perfusion' : [freesurfer, dti, fmri, vbm]}
 
 # Configure launcher with specific queue limit and job dir
-myLauncher = Launcher(queue_limit=1000, root_job_dir='/gpfs21/scratch/'+os.getlogin()+'/tmp')
+myLauncher = Launcher(pp, queue_limit=1000, root_job_dir='/gpfs21/scratch/'+os.getlogin()+'/tmp')
 
 # Now run the update
-myLauncher.update(pp)
-#myLauncher.update_open_tasks(pp)
+if 1:
+    myLauncher.update()
+if 1:
+    myLauncher.update_open_tasks()
