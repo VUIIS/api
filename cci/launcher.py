@@ -21,16 +21,31 @@ DEFAULT_ROOT_JOB_DIR = '/tmp'
 #TODO: add sort options
 
 class Launcher(object):
-    def __init__(self,project_process_dict,queue_limit=DEFAULT_QUEUE_LIMIT, root_job_dir=DEFAULT_ROOT_JOB_DIR):
+    def __init__(self,project_process_dict,queue_limit=DEFAULT_QUEUE_LIMIT, root_job_dir=DEFAULT_ROOT_JOB_DIR, xnat_user=None, xnat_pass=None, xnat_host=None, upload_dir=None):
         self.queue_limit = queue_limit
         self.root_job_dir = root_job_dir
         self.project_process_dict = project_process_dict
         try:
-            # Environs
-            self.xnat_user = os.environ['XNAT_USER']
-            self.xnat_pass = os.environ['XNAT_PASS']
-            self.xnat_host = os.environ['XNAT_HOST']
-            self.upload_dir = os.environ['UPLOAD_SPIDER_DIR']
+            if xnat_user == None:
+                self.xnat_user = os.environ['XNAT_USER']
+            else:
+                self.xnat_user = xnat_user
+                
+            if xnat_pass == None:
+                self.xnat_pass = os.environ['XNAT_PASS']
+            else:
+                self.xnat_pass = xnat_pass
+                
+            if xnat_host == None:
+                self.xnat_host = os.environ['XNAT_HOST']
+            else:
+                self.xnat_host = xnat_host
+        
+            if upload_dir == None:
+                self.upload_dir = os.environ['UPLOAD_SPIDER_DIR']
+            else:
+                self.upload_dir = upload_dir
+
         except KeyError as e:
             print "You must set the environment variable %s" % str(e)
             sys.exit(1)  
@@ -48,7 +63,7 @@ class Launcher(object):
         task_queue = []
                 
         try:
-            print 'Connecting to XNAT'
+            print 'Connecting to XNAT at '+self.xnat_host
             xnat = Interface(self.xnat_host, self.xnat_user, self.xnat_pass)
             
             print 'Getting task list...'
@@ -183,7 +198,7 @@ class Launcher(object):
         task_queue = []
                 
         try:
-            print 'Connecting to XNAT'
+            print 'Connecting to XNAT at'+self.xnat_host
             xnat = Interface(self.xnat_host, self.xnat_user, self.xnat_pass)
             
             print 'Getting task list...'
@@ -209,7 +224,7 @@ class Launcher(object):
     
     def update_status_only(self):            
         try:
-            print 'Connecting to XNAT'
+            print 'Connecting to XNAT at'+self.xnat_host
             xnat = Interface(self.xnat_host, self.xnat_user, self.xnat_pass)
             
             print 'Getting task list'
@@ -227,7 +242,7 @@ class Launcher(object):
         task_queue = []
             
         try:
-            print 'Connecting to XNAT'
+            print 'Connecting to XNAT at'+self.xnat_host
             xnat = Interface(self.xnat_host, self.xnat_user, self.xnat_pass)    
                     
             print 'Getting task list...'
