@@ -198,7 +198,7 @@ class Launcher(object):
         task_queue = []
                 
         try:
-            print 'Connecting to XNAT at'+self.xnat_host
+            print 'Connecting to XNAT at '+self.xnat_host
             xnat = Interface(self.xnat_host, self.xnat_user, self.xnat_pass)
             
             print 'Getting task list...'
@@ -224,7 +224,7 @@ class Launcher(object):
     
     def update_status_only(self):            
         try:
-            print 'Connecting to XNAT at'+self.xnat_host
+            print 'Connecting to XNAT at '+self.xnat_host
             xnat = Interface(self.xnat_host, self.xnat_user, self.xnat_pass)
             
             print 'Getting task list'
@@ -242,7 +242,7 @@ class Launcher(object):
         task_queue = []
             
         try:
-            print 'Connecting to XNAT at'+self.xnat_host
+            print 'Connecting to XNAT at '+self.xnat_host
             xnat = Interface(self.xnat_host, self.xnat_user, self.xnat_pass)    
                     
             print 'Getting task list...'

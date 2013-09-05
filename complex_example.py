@@ -41,7 +41,4 @@ pp = {'NewhouseCC' : [freesurfer, dti, fmri, vbm],
 myLauncher = Launcher(pp, queue_limit=1000, root_job_dir='/gpfs21/scratch/'+os.getlogin()+'/tmp')
 
 # Now run the update
-if 1:
-    myLauncher.update()
-if 1:
-    myLauncher.update_open_tasks()
+myLauncher.update()

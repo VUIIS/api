@@ -123,7 +123,7 @@ def set_check_assessor_status(assessor_label_list,emailaddress):
     
     #connect to the experiment
     try:
-        print '\tConnection to Xnat to set status'
+        print '\tConnecting to XNAT to set status at '+VUIISxnat_host
         xnat = Interface(VUIISxnat_host, VUIISxnat_user, VUIISxnat_pwd)
         #Get the Project Name, the subject label, the experiment label and the assessor label from the file name :
         for assessor_label in assessor_label_list:
@@ -504,7 +504,7 @@ if __name__ == '__main__':
                 
                 #Start the process to upload
                 try:
-                    print '\tConnection to Xnat'
+                    print '\tConnecting to XNAT at '+VUIISxnat_host
                     xnat = Interface(VUIISxnat_host, VUIISxnat_user, VUIISxnat_pwd)
                     
                     ################# 1) Upload the assessor data ###############
