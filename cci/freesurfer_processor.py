@@ -84,9 +84,12 @@ class Freesurfer_Processor (SessionProcessor):
             assessor.create(assessors='fs:fsData', **{'fs:fsData/fsversion':'0'})
             assessor.attrs.set('fs:fsData/date', datetime.today().strftime('%Y-%m-%d'))
             if self.has_inputs(assessor):
-                assessor.attrs.set('fs:fsdata/validation/status', task.NEED_TO_RUN)
+                assessor.attrs.set('fs:fsdata/procstatus', task.NEED_TO_RUN)
+                assessor.attrs.set('fs:fsdata/validation/status', task.JOB_PENDING)
             else:
-                assessor.attrs.set('fs:fsdata/validation/status', task.NEED_INPUTS)
+                assessor.attrs.set('fs:fsdata/procstatus', task.NEED_INPUTS)
+                assessor.attrs.set('fs:fsdata/validation/status', task.JOB_PENDING)
+
         return task.Task(self,assessor,upload_dir)
     
     def get_cmds(self,assessor,jobdir):         

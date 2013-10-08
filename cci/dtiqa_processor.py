@@ -35,5 +35,5 @@ class DtiQa_Processor (ScanProcessor):
         dtiqa_path = self.dtiqa_path
         masimatlab = self.masimatlab
          
-        cmd = 'python '+dtiqa_path+' -m '+masimatlab+' -p '+proj+' -d '+jobdir+' -s '+subj+' -e '+sess+' -c '+scan
+        cmd = 'python '+dtiqa_path+' -v -m '+masimatlab+' -p '+proj+' -d '+jobdir+' -s '+subj+' -e '+sess+' -c '+scan
         return [cmd]

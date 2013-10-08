@@ -148,7 +148,7 @@ def set_check_assessor_status(assessor_label_list,emailaddress):
                     new_assessor_list.append(assessor_label)
                 elif assessor.exists():
                     #check status :
-                    if assessor.attrs.get('proc:genProcData/procstatus')=='Complete':
+                    if assessor.attrs.get('proc:genProcData/procstatus')=='COMPLETE':
                         if not os.path.exists(assessor_path+'/ALREADY_SEND_EMAIL.txt'):
                             open(assessor_path+'/ALREADY_SEND_EMAIL.txt', 'w').close()
                         print 'Data already exist.\n'
@@ -156,14 +156,14 @@ def set_check_assessor_status(assessor_label_list,emailaddress):
                         send_an_email=1
                     else:
                         #set the status to Upload :
-                        assessor.attrs.set('proc:genProcData/procstatus','Uploading')
+                        assessor.attrs.set('proc:genProcData/procstatus','UPLOADING')
                         #add to the list:
                         new_assessor_list.append(assessor_label)
                 else:
                     #create the assessor and set the status 
                     assessor.create(assessors='proc:genProcData')
                     #Set attributes
-                    assessor.attrs.set('proc:genProcData/procstatus','Uploading') #Set to uploading files
+                    assessor.attrs.set('proc:genProcData/procstatus','UPLOADING') #Set to uploading files
                     assessor.attrs.set('proc:genProcData/proctype', Process_name)
                     now=datetime.now()
                     today=str(now.year)+'-'+str(now.month)+'-'+str(now.day)
@@ -264,7 +264,7 @@ def Uploading_Assessor(xnat,assessor_path,ProjectName,Subject,Experiment,assesso
             print 'WARNING : '+Resource +' is not a folder. Can not be upload.\n'
                         
     #upload finish
-    assessor.attrs.set('proc:genProcData/procstatus','Complete')
+    assessor.attrs.set('proc:genProcData/procstatus','COMPLETE')
     os.system('rm -r '+assessor_path)
 
 def Uploading_OUTLOG(outlog_list,xnat):
@@ -285,7 +285,7 @@ def Uploading_OUTLOG(outlog_list,xnat):
             if assessor.exists():
                 r=assessor.out_resource('OUTLOG')
                 #if the resource exist, don't upload it
-                if r.exists() and assessor.attrs.get('proc:genProcData/procstatus')=='Complete':
+                if r.exists() and assessor.attrs.get('proc:genProcData/procstatus')=='COMPLETE':
                     print 'WARNING : the OUTLOG resource already exists for the assessor '+assessor_label
                     print 'Copying the outlog file in the assessor folder if exists or in trash if not.'
                     #check if there is a folder with the same name : if yes, put the outlog there. If not upload it.

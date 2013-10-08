@@ -32,7 +32,7 @@ class FmriQa_Processor (ScanProcessor):
         redcapkey = self.redcapkey
         masimatlab = self.masimatlab
         
-        cmd = 'python '+fmriqa_path+' -m '+masimatlab+' -p '+proj+' -d '+jobdir+' -s '+subj+' -e '+sess+' -c '+scan
+        cmd = 'python '+fmriqa_path+' -v -m '+masimatlab+' -p '+proj+' -d '+jobdir+' -s '+subj+' -e '+sess+' -c '+scan
         if redcapkey != None:
             cmd +=' -k '+redcapkey
         return [cmd]

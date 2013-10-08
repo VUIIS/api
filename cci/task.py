@@ -3,28 +3,31 @@ from cluster import PBS
 from datetime import date
 import os
 
-# Task Statuses
-NEED_TO_RUN='NeedToRun' # assessor that is ready to be launch on the cluster (ACCRE). All the input data for the process to run are there.
-NEED_INPUTS='NeedInputs' # assessor where input data are missing from a scan, multiple scans or other assessor.
+# Job Statuses
+NEED_TO_RUN='NEED_TO_RUN' # assessor that is ready to be launch on the cluster (ACCRE). All the input data for the process to run are there.
+NEED_INPUTS='NEED_INPUTS' # assessor where input data are missing from a scan, multiple scans or other assessor.
 JOB_RUNNING='JOB_RUNNING' # the job has been submitted on the cluster and is running right now.
 JOB_FAILED='JOB_FAILED' # the job failed on the cluster.
-READY_TO_UPLOAD='ReadyToUpload' # Job done, waiting for the Spider to upload the results
-UPLOADING='Uploading' # in the process of uploading the resources on XNAT.
-COMPLETE='Complete' # the assessors contains all the files. The upload and the job are done.  
+READY_TO_UPLOAD='READY_TO_UPLOAD' # Job done, waiting for the Spider to upload the results
+UPLOADING='UPLOADING' # in the process of uploading the resources on XNAT.
+COMPLETE='COMPLETE' # the assessors contains all the files. The upload and the job are done.  
+READY_TO_COMPLETE='READY_TO_COMPLETE' # the job finished and upload is complete
+DOES_NOT_EXIST='DOES_NOT_EXIST'
+OPEN_STATUS_LIST = [NEED_TO_RUN, UPLOADING, JOB_RUNNING]
+
+# QA Statuses
+JOB_PENDING = 'Job Pending' # job is still running, not ready for QA yet
 NEEDS_QA='Needs QA' # For FS, the complete status
 PASSED_QA='Passed' # QA status set by the Image Analyst after looking at the results.
 FAILED='Failed' # QA status set by the Image Analyst after looking at the results.
-DOES_NOT_EXIST='DOES_NOT_EXIST'
-ERROR='ERROR'
 FAILED_NEEDS_REPROC='Failed-needs reprocessing'
 PASSED_EDITED_QA='Passed with edits'
-#UPLOAD_COMPLETE='UploadComplete'
+RERUN='Rerun' # will cause spider to delete results and rerun the processing
 
 # Other Constants
 DEFAULT_PBS_DIR=os.environ['UPLOAD_SPIDER_DIR']+'/PBS'
 DEFAULT_OUT_DIR=os.environ['UPLOAD_SPIDER_DIR']+'/OUTLOG'
 READY_TO_UPLOAD_FLAG_FILENAME = 'READY_TO_UPLOAD.txt'
-OPEN_STATUS_LIST = [NEED_TO_RUN, UPLOADING, JOB_RUNNING]
 
 class Task(object):
     def __init__(self, processor, assessor, upload_dir):
@@ -55,9 +58,24 @@ class Task(object):
         astatus = self.get_status()
         return astatus in OPEN_STATUS_LIST
     
+    def copy_memused(self):
+        memusedmb = ''
+        if self.atype == 'proc:genprocdata':
+            memusedmb = self.assessor.attrs.get('proc:genprocdata/memusedmb')
+        elif self.atype == 'fs:fsdata':
+            #memusedmb = ''.join(self.assessor.xpath("//xnat:addParam[@name='memusedmb']/child::text()")).replace("\n","")
+            memusedmb = self.assessor.attrs.get('fs:fsdata/memusedmb')
+            
+        if memusedmb.strip() != '':
+            memused = memusedmb + 'mb'
+            print 'DEBUG:copy memused:'+self.assessor_label+':'+memused
+            self.set_memused(memused)
+
     def check_job_usage(self):
+        #self.copy_memused()
+        
         # If already set, do nothing
-        if self.get_memusedmb() != '' or self.get_walltime() != '':
+        if self.get_memused() != '' or self.get_walltime() != '':
             return
         
         jobstartdate = self.get_jobstartdate()
@@ -65,48 +83,54 @@ class Task(object):
         # If we can't get info from cluster
         if not cluster.is_traceable_date(jobstartdate):
             self.set_walltime('NotFound')
+            self.set_memused('NotFound')
             return
         
         # Get usage with tracejob
         jobinfo = cluster.tracejob_info(self.get_jobid(), jobstartdate)
         if jobinfo['mem_used'] != '': 
-            memusedmb = str(int(jobinfo['mem_used'].split('kb')[0])/1024)
-            self.set_memusedmb(memusedmb)
+            memused = str(int(jobinfo['mem_used'].split('kb')[0])/1024)+'mb'
+            self.set_memused(memused)
         if jobinfo['walltime_used'] != '':
             self.set_walltime(jobinfo['walltime_used'])
             
-    def get_memusedmb(self):
-        memusedmb = ''
+    def get_memused(self):
+        memused = ''
         if self.atype == 'proc:genprocdata':
-            memusedmb = self.assessor.attrs.get('proc:genprocdata/memusedmb')
+            memused = self.assessor.attrs.get('proc:genprocdata/memused')
         elif self.atype == 'fs:fsdata':
-            memusedmb = ''.join(self.assessor.xpath("//xnat:addParam[@name='memusedmb']/child::text()")).replace("\n","")
-        return memusedmb
+            #memused = ''.join(self.assessor.xpath("//xnat:addParam[@name='memused']/child::text()")).replace("\n","")
+            memused = self.assessor.attrs.get('fs:fsdata/memused')
+
+        return memused
     
-    def set_memusedmb(self,memusedmb):
+    def set_memused(self,memused):
         if self.atype == 'proc:genprocdata':
-            self.assessor.attrs.set('proc:genprocdata/memusedmb', memusedmb)
+            self.assessor.attrs.set('proc:genprocdata/memused', memused)
         elif self.atype == 'fs:fsdata':
-            self.assessor.attrs.set("fs:fsdata/parameters/addParam[name=memusedmb]/addField", memusedmb)
-            
+            #self.assessor.attrs.set("fs:fsdata/parameters/addParam[name=memused]/addField", memused)
+            self.assessor.attrs.set('fs:fsdata/memused', memused)
+
     def get_walltime(self):
         walltime = ''
         if self.atype == 'proc:genprocdata':
             walltime = self.assessor.attrs.get('proc:genprocdata/walltimeused')
         elif self.atype == 'fs:fsdata':
-            walltime = ''.join(self.assessor.xpath("//xnat:addParam[@name='walltimeused']/child::text()")).replace("\n","")
+            #walltime = ''.join(self.assessor.xpath("//xnat:addParam[@name='walltimeused']/child::text()")).replace("\n","")
+            walltime = self.assessor.attrs.get('fs:fsdata/walltimeused')
         return walltime
     
     def set_walltime(self,walltime):
         if self.atype == 'proc:genprocdata':
             self.assessor.attrs.set('proc:genprocdata/walltimeused', walltime)
         elif self.atype == 'fs:fsdata':
-            self.assessor.attrs.set("fs:fsdata/parameters/addParam[name=walltimeused]/addField", walltime)
+            #self.assessor.attrs.set("fs:fsdata/parameters/addParam[name=walltimeused]/addField", walltime)
+            self.assessor.attrs.set('fs:fsdata/walltimeused', walltime)
 
     def update_status(self):                
         old_status = self.get_status()
         new_status = old_status
-        
+            
         if old_status == NEED_TO_RUN:
             # TODO: anything, not yet???
             pass
@@ -131,13 +155,33 @@ class Task(object):
         elif old_status == UPLOADING:
             # TODO: can we see if it's really uploading???
             pass
+        elif old_status == '':
+            qcstatus = self.get_qcstatus()
+            print 'DEBUG:QC Status='+qcstatus
+            if qcstatus == NEEDS_QA or 'Passed' in qcstatus or 'Failed' in qcstatus:
+                new_status = COMPLETE
         else:
-            print 'ERROR:unknown status:'+old_status
+            if old_status == 'Complete':
+                new_status = COMPLETE
+            elif old_status == 'NeedInputs':
+                new_status = NEED_INPUTS
+            else:
+                print 'ERROR:unknown status:'+old_status
             
         if (new_status != old_status):
             print('INFO:changing status from '+old_status+' to '+new_status)
             self.set_status(new_status)
             
+        
+        # Update QC Status
+        qcstatus = self.get_qcstatus()
+        if qcstatus == '':
+            if new_status == COMPLETE:
+                self.set_qcstatus(NEEDS_QA)
+            else:
+                self.set_qcstatus(JOB_PENDING)
+
+
         return new_status
     
     def get_jobid(self):    
@@ -145,7 +189,8 @@ class Task(object):
         if self.atype == 'proc:genprocdata':
             jobid = self.assessor.attrs.get('proc:genprocdata/jobid')
         elif self.atype == 'fs:fsdata':
-            jobid = ''.join(self.assessor.xpath("//xnat:addParam[@name='jobid']/child::text()")).replace("\n","")
+            #jobid = ''.join(self.assessor.xpath("//xnat:addParam[@name='jobid']/child::text()")).replace("\n","")
+            jobid = self.assessor.attrs.get('fs:fsdata/jobid')
         return jobid
         
     def get_job_status(self):
@@ -188,7 +233,8 @@ class Task(object):
         if self.atype == 'proc:genprocdata':
             jobstartdate = self.assessor.attrs.get('proc:genProcData/jobstartdate')
         elif self.atype == 'fs:fsdata':
-            jobstartdate = ''.join(self.assessor.xpath("//xnat:addParam[@name='jobstartdate']/child::text()")).replace("\n","")
+            #jobstartdate = ''.join(self.assessor.xpath("//xnat:addParam[@name='jobstartdate']/child::text()")).replace("\n","")
+            jobstartdate = self.assessor.attrs.get('fs:fsdata/jobstartdate')
         return jobstartdate
     
     def set_jobstartdate_today(self):
@@ -199,7 +245,9 @@ class Task(object):
         if self.atype == 'proc:genprocdata':
             self.assessor.attrs.set('proc:genProcData/jobstartdate', date_str)
         elif self.atype == 'fs:fsdata':
-            self.assessor.attrs.set("fs:fsdata/parameters/addParam[name=jobstartdate]/addField", date_str)
+            #self.assessor.attrs.set("fs:fsdata/parameters/addParam[name=jobstartdate]/addField", date_str)
+            self.assessor.attrs.set('fs:fsdata/jobstartdate]', date_str)
+
     
     def get_createdate(self):
         createdate = ''
@@ -229,16 +277,33 @@ class Task(object):
         elif self.atype == 'proc:genprocdata':
             xnat_status = self.assessor.attrs.get('proc:genProcData/procstatus')
         elif self.atype == 'fs:fsdata':
-            xnat_status = self.assessor.attrs.get('fs:fsdata/validation/status')
+            xnat_status = self.assessor.attrs.get('fs:fsdata/procstatus')
         else:
             xnat_status = 'UNKNOWN_xsiType:'+self.atype
         return xnat_status
                     
     def set_status(self,status):        
         if self.atype == 'fs:fsdata':
-            self.assessor.attrs.set('fs:fsdata/validation/status', status)
+            self.assessor.attrs.set('fs:fsdata/procstatus', status)
         else:
             self.assessor.attrs.set('proc:genprocdata/procstatus', status)
+            
+    def get_qcstatus(self):
+        qcstatus = ''
+        atype = self.atype
+        
+        if not self.assessor.exists():
+            qcstatus = DOES_NOT_EXIST
+        elif atype == 'proc:genprocdata' or atype == 'fs:fsdata':
+            qcstatus = self.assessor.attrs.get(atype+'/validation/status')
+        else:
+            qcstatus = 'UNKNOWN_xsiType:'+atype
+
+        return qcstatus
+                    
+    def set_qcstatus(self,qcstatus):    
+        atype = self.atype
+        self.assessor.attrs.set(atype+'/validation/status', qcstatus)
             
     def has_inputs(self):
         return self.processor.has_inputs(self.assessor)
@@ -247,7 +312,8 @@ class Task(object):
         if self.atype == 'proc:genprocdata':
             self.assessor.attrs.set('proc:genprocdata/jobid', jobid)
         elif self.atype == 'fs:fsdata':
-            self.assessor.attrs.set("fs:fsdata/parameters/addParam[name=jobid]/addField", jobid)
+            #self.assessor.attrs.set("fs:fsdata/parameters/addParam[name=jobid]/addField", jobid)
+            self.assessor.attrs.set('fs:fsdata/jobid', jobid)
 
     def commands(self,jobdir):
         return self.processor.get_cmds(self.assessor,jobdir+"/"+self.assessor_label)

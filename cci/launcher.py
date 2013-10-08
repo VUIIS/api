@@ -14,8 +14,9 @@ import XnatUtils
 import task
 import cluster
 from task import Task
+from datetime import datetime
 
-DEFAULT_QUEUE_LIMIT = 1000
+DEFAULT_QUEUE_LIMIT = 300
 DEFAULT_ROOT_JOB_DIR = '/tmp'
 
 #TODO: add sort options
@@ -196,6 +197,8 @@ class Launcher(object):
                                                 
     def update(self):
         task_queue = []
+          
+        print 'Running update, start time:'+str(datetime.now())
                 
         try:
             print 'Connecting to XNAT at '+self.xnat_host
@@ -217,6 +220,8 @@ class Launcher(object):
             
             # Launch jobs
             self.launch_jobs(task_queue)
+            
+            print 'Finished update, stop time:'+str(datetime.now())
             
         finally:                                        
             xnat.disconnect()
@@ -273,7 +278,7 @@ class Launcher(object):
         print(str(cur_job_count)+' jobs currently in queue')
         
         # Launch until we reach cluster limit or no jobs left to launch
-        while cur_job_count <= self.queue_limit and len(task_list)>0:
+        while cur_job_count < self.queue_limit and len(task_list)>0:
             cur_task = task_list.pop()
             
             # Confirm task is still ready to run

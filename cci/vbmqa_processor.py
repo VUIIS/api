@@ -32,5 +32,5 @@ class VbmQa_Processor (ScanProcessor):
         masimatlab = self.masimatlab
         spm_path = self.spm_path
         
-        cmd = 'python '+vbmqa_path+' -m '+masimatlab+' --spm '+spm_path+' -p '+proj+' -d '+jobdir+' -s '+subj+' -e '+sess+' -c '+scan
+        cmd = 'python '+vbmqa_path+' -v -m '+masimatlab+' --spm '+spm_path+' -p '+proj+' -d '+jobdir+' -s '+subj+' -e '+sess+' -c '+scan
         return [cmd]
