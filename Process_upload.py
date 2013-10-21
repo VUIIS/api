@@ -12,6 +12,7 @@ import sys
 import Spiders
 from datetime import datetime
 from pyxnat import Interface
+from task import READY_TO_COMPLETE, COMPLETE
 
 def parse_args():
     from optparse import OptionParser
@@ -148,7 +149,7 @@ def set_check_assessor_status(assessor_label_list,emailaddress):
                     new_assessor_list.append(assessor_label)
                 elif assessor.exists():
                     #check status :
-                    if assessor.attrs.get('proc:genProcData/procstatus')=='COMPLETE':
+                    if assessor.attrs.get('proc:genProcData/procstatus') == COMPLETE:
                         if not os.path.exists(assessor_path+'/ALREADY_SEND_EMAIL.txt'):
                             open(assessor_path+'/ALREADY_SEND_EMAIL.txt', 'w').close()
                         print 'Data already exist.\n'
@@ -264,7 +265,7 @@ def Uploading_Assessor(xnat,assessor_path,ProjectName,Subject,Experiment,assesso
             print 'WARNING : '+Resource +' is not a folder. Can not be upload.\n'
                         
     #upload finish
-    assessor.attrs.set('proc:genProcData/procstatus','COMPLETE')
+    assessor.attrs.set('proc:genProcData/procstatus', READY_TO_COMPLETE)
     os.system('rm -r '+assessor_path)
 
 def Uploading_OUTLOG(outlog_list,xnat):
@@ -285,7 +286,8 @@ def Uploading_OUTLOG(outlog_list,xnat):
             if assessor.exists():
                 r=assessor.out_resource('OUTLOG')
                 #if the resource exist, don't upload it
-                if r.exists() and assessor.attrs.get('proc:genProcData/procstatus')=='COMPLETE':
+                procstatus = assessor.attrs.get('proc:genProcData/procstatus')
+                if r.exists() and (procstatus == COMPLETE or procstatus == READY_TO_COMPLETE):
                     print 'WARNING : the OUTLOG resource already exists for the assessor '+assessor_label
                     print 'Copying the outlog file in the assessor folder if exists or in trash if not.'
                     #check if there is a folder with the same name : if yes, put the outlog there. If not upload it.
@@ -443,7 +445,7 @@ def Upload_FreeSurfer(xnat,assessor_path,ProjectName,Subject,Experiment,assessor
             print 'WARNING : '+Resource +' is not a folder. Can not be upload.\n'
                         
     #upload finish
-    assessor.attrs.set('fs:fsdata/validation/status','Needs QA')
+    assessor.attrs.set('fs:fsdata/procstatus',READY_TO_COMPLETE)
     os.system('rm -r '+assessor_path)
     
 #########################################################################################################################################################
