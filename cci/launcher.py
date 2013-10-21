@@ -18,6 +18,8 @@ from datetime import datetime
 
 DEFAULT_QUEUE_LIMIT = 300
 DEFAULT_ROOT_JOB_DIR = '/tmp'
+FULL_UPDATE_LOCK_FILE  = 'FULL_UPDATE_RUNNING.txt'
+QUICK_UPDATE_LOCK_FILE  = 'QUICK_UPDATE_RUNNING.txt'
 
 #TODO: add sort options
 
@@ -59,11 +61,17 @@ class Launcher(object):
             # their data,good idea???
 
         # TODO: check the project process list
+        # TODO: check that projects exist
                 
     def update_open_tasks(self):
         task_queue = []
                 
         try:
+            success = self.lock_quick_update()   
+            if not success:
+                print 'ERROR:failed to get lock on quick update'
+                exit(1)                              
+
             print 'Connecting to XNAT at '+self.xnat_host
             xnat = Interface(self.xnat_host, self.xnat_user, self.xnat_pass)
             
@@ -87,7 +95,8 @@ class Launcher(object):
             # Launch jobs
             self.launch_jobs(task_queue)
             
-        finally:                                        
+        finally:       
+            self.unlock_quick_update()                                                      
             xnat.disconnect()
             print 'Connection to XNAT closed' 
             
@@ -118,7 +127,7 @@ class Launcher(object):
         assr_list = XnatUtils.list_assessors(xnat, projid, subjid, sessid)
         for assr_info in assr_list:  
             task_proc = None
-            
+                        
             if assr_info['procstatus'] not in task.OPEN_STATUS_LIST:
                 continue
               
@@ -197,10 +206,15 @@ class Launcher(object):
                                                 
     def update(self):
         task_queue = []
-          
+        
         print 'Running update, start time:'+str(datetime.now())
-                
+
         try:
+            success = self.lock_full_update()
+            if not success:
+                print 'ERROR:failed to get lock on full update'
+                exit(1)                              
+
             print 'Connecting to XNAT at '+self.xnat_host
             xnat = Interface(self.xnat_host, self.xnat_user, self.xnat_pass)
             
@@ -223,7 +237,8 @@ class Launcher(object):
             
             print 'Finished update, stop time:'+str(datetime.now())
             
-        finally:                                        
+        finally:       
+            self.unlock_full_update()                                 
             xnat.disconnect()
             print 'Connection to XNAT closed' 
     
@@ -291,3 +306,34 @@ class Launcher(object):
                 cur_job_count+=1
             else:
                 print 'ERROR:failed to launch job'
+                
+    def lock_full_update(self):
+        lock_file = self.upload_dir+'/'+FULL_UPDATE_LOCK_FILE
+        
+        if os.path.exists(lock_file):
+            return False
+        else:
+            open(lock_file, 'w').close()
+            return True
+                
+    def lock_quick_update(self):
+        lock_file = self.upload_dir+'/'+QUICK_UPDATE_LOCK_FILE
+        
+        if os.path.exists(lock_file):
+            return False
+        else:
+            open(lock_file, 'w').close()
+            return True
+        
+    def unlock_full_update(self):
+        lock_file = self.upload_dir+'/'+FULL_UPDATE_LOCK_FILE
+        
+        if os.path.exists(lock_file):
+           os.remove(lock_file)
+                
+    def unlock_quick_update(self):
+        lock_file = self.upload_dir+'/'+QUICK_UPDATE_LOCK_FILE
+        
+        if os.path.exists(lock_file):
+            os.remove(lock_file)
+
