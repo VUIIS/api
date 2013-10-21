@@ -13,7 +13,7 @@ UPLOADING='UPLOADING' # in the process of uploading the resources on XNAT.
 COMPLETE='COMPLETE' # the assessors contains all the files. The upload and the job are done.  
 READY_TO_COMPLETE='READY_TO_COMPLETE' # the job finished and upload is complete
 DOES_NOT_EXIST='DOES_NOT_EXIST'
-OPEN_STATUS_LIST = [NEED_TO_RUN, UPLOADING, JOB_RUNNING]
+OPEN_STATUS_LIST = [NEED_TO_RUN, UPLOADING, JOB_RUNNING, READY_TO_COMPLETE, JOB_FAILED]
 
 # QA Statuses
 JOB_PENDING = 'Job Pending' # job is still running, not ready for QA yet
@@ -74,13 +74,20 @@ class Task(object):
     def check_job_usage(self):
         #self.copy_memused()
         
-        # If already set, do nothing
-        if self.get_memused() != '' or self.get_walltime() != '':
+        memused = self.get_memused()
+        walltime = self.get_walltime()
+        
+        if walltime != '':
+            if memused == '':
+                self.set_memused('NotFound')
+            else:
+                print 'DEBUG:memused and walltime already set, skipping'
+            
             return
         
         jobstartdate = self.get_jobstartdate()
         
-        # If we can't get info from cluster
+        # We can't get info from cluster if job too old
         if not cluster.is_traceable_date(jobstartdate):
             self.set_walltime('NotFound')
             self.set_memused('NotFound')
@@ -102,7 +109,7 @@ class Task(object):
             #memused = ''.join(self.assessor.xpath("//xnat:addParam[@name='memused']/child::text()")).replace("\n","")
             memused = self.assessor.attrs.get('fs:fsdata/memused')
 
-        return memused
+        return memused.strip()
     
     def set_memused(self,memused):
         if self.atype == 'proc:genprocdata':
@@ -118,30 +125,46 @@ class Task(object):
         elif self.atype == 'fs:fsdata':
             #walltime = ''.join(self.assessor.xpath("//xnat:addParam[@name='walltimeused']/child::text()")).replace("\n","")
             walltime = self.assessor.attrs.get('fs:fsdata/walltimeused')
-        return walltime
-    
+        
+        return walltime.strip()
+
     def set_walltime(self,walltime):
         if self.atype == 'proc:genprocdata':
             self.assessor.attrs.set('proc:genprocdata/walltimeused', walltime)
         elif self.atype == 'fs:fsdata':
             #self.assessor.attrs.set("fs:fsdata/parameters/addParam[name=walltimeused]/addField", walltime)
             self.assessor.attrs.set('fs:fsdata/walltimeused', walltime)
-
+            
+    def undo_processing(self):
+        self.set_qcstatus(JOB_PENDING)
+        self.set_jobid(' ')
+        self.set_memused(' ')
+        self.set_walltime(' ')
+        
+        out_resource_list = self.assessor.out_resources()
+        for out_resource in out_resource_list:
+            print('\t  Removing '+out_resource.label())
+            out_resource.delete() 
+        
     def update_status(self):                
         old_status = self.get_status()
+        qcstatus = self.get_qcstatus()
         new_status = old_status
-            
-        if old_status == NEED_TO_RUN:
+                
+        if qcstatus == RERUN:
+            print 'DEBUG:qcstatus RERUN:running undo_processing...'
+            self.undo_processing()  
+            new_status = NEED_TO_RUN
+        elif old_status == COMPLETE or old_status == JOB_FAILED:
+            #self.check_date()
+            pass
+        elif old_status == NEED_TO_RUN:
             # TODO: anything, not yet???
             pass
-        elif old_status == COMPLETE or old_status == PASSED_QA or old_status == PASSED_EDITED_QA or old_status == NEEDS_QA:
+        elif old_status == READY_TO_COMPLETE:
             self.check_job_usage()
-            #self.check_date()
-        elif old_status == FAILED or old_status == FAILED_NEEDS_REPROC:
-            self.check_job_usage()
-            #self.check_date()
-        elif old_status == JOB_FAILED:
-            self.check_job_usage()
+            self.set_qcstatus(NEEDS_QA)
+            new_status = COMPLETE
         elif old_status == NEED_INPUTS:
             # Check it again in case available inputs changed
             if self.has_inputs():
@@ -155,33 +178,17 @@ class Task(object):
         elif old_status == UPLOADING:
             # TODO: can we see if it's really uploading???
             pass
-        elif old_status == '':
-            qcstatus = self.get_qcstatus()
-            print 'DEBUG:QC Status='+qcstatus
-            if qcstatus == NEEDS_QA or 'Passed' in qcstatus or 'Failed' in qcstatus:
-                new_status = COMPLETE
         else:
-            if old_status == 'Complete':
-                new_status = COMPLETE
-            elif old_status == 'NeedInputs':
-                new_status = NEED_INPUTS
-            else:
-                print 'ERROR:unknown status:'+old_status
+            print 'ERROR:unknown status:'+old_status
             
         if (new_status != old_status):
             print('INFO:changing status from '+old_status+' to '+new_status)
-            self.set_status(new_status)
-            
+            self.set_status(new_status) 
         
-        # Update QC Status
-        qcstatus = self.get_qcstatus()
-        if qcstatus == '':
+            # Update QC Status        
             if new_status == COMPLETE:
                 self.set_qcstatus(NEEDS_QA)
-            else:
-                self.set_qcstatus(JOB_PENDING)
-
-
+            
         return new_status
     
     def get_jobid(self):    
@@ -246,7 +253,7 @@ class Task(object):
             self.assessor.attrs.set('proc:genProcData/jobstartdate', date_str)
         elif self.atype == 'fs:fsdata':
             #self.assessor.attrs.set("fs:fsdata/parameters/addParam[name=jobstartdate]/addField", date_str)
-            self.assessor.attrs.set('fs:fsdata/jobstartdate]', date_str)
+            self.assessor.attrs.set('fs:fsdata/jobstartdate', date_str)
 
     
     def get_createdate(self):
