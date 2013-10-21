@@ -67,7 +67,7 @@ def list_assessors(intf, projectid, subjectid, experimentid):
     
     # First get FreeSurfer
     post_uri = '/REST/projects/'+projectid+'/subjects/'+subjectid+'/experiments/'+experimentid+'/assessors'
-    post_uri += '?columns=ID,label,URI,xsiType,project,xnat:mrsessiondata/subject_id,xnat:mrsessiondata/id,xnat:mrsessiondata/label,URI,fs:fsData/validation/status&xsiType=fs:fsData' 
+    post_uri += '?columns=ID,label,URI,xsiType,project,xnat:mrsessiondata/subject_id,xnat:mrsessiondata/id,xnat:mrsessiondata/label,URI,fs:fsData/procstatus,fs:fsData/validation/status&xsiType=fs:fsData' 
     assessor_list = intf._get_json(post_uri)
         
     for a in assessor_list:
@@ -80,14 +80,15 @@ def list_assessors(intf, projectid, subjectid, experimentid):
         anew['subject_id'] = a['xnat:mrsessiondata/subject_id']
         anew['session_id'] = a['xnat:mrsessiondata/id']
         anew['session_label'] = a['xnat:mrsessiondata/label']
-        anew['procstatus'] = a['fs:fsdata/validation/status']
+        anew['procstatus'] = a['fs:fsdata/procstatus']
+        anew['qcstatus'] = a['fs:fsdata/validation/status']
         anew['proctype'] = 'FreeSurfer'
         anew['xsiType'] = a['xsiType']
         new_list.append(anew)
         
     # Then add genProcData
     post_uri = '/REST/projects/'+projectid+'/subjects/'+subjectid+'/experiments/'+experimentid+'/assessors'
-    post_uri += '?columns=ID,label,URI,xsiType,project,xnat:mrsessiondata/subject_id,xnat:mrsessiondata/id,xnat:mrsessiondata/label,proc:genprocdata/procstatus,proc:genprocdata/proctype&xsiType=proc:genprocdata' 
+    post_uri += '?columns=ID,label,URI,xsiType,project,xnat:mrsessiondata/subject_id,xnat:mrsessiondata/id,xnat:mrsessiondata/label,proc:genprocdata/procstatus,proc:genprocdata/proctype,proc:genprocdata/validation/status&xsiType=proc:genprocdata' 
     assessor_list = intf._get_json(post_uri)
         
     for a in assessor_list:
@@ -102,6 +103,7 @@ def list_assessors(intf, projectid, subjectid, experimentid):
         anew['session_label'] = a['xnat:mrsessiondata/label']
         anew['procstatus'] = a['proc:genprocdata/procstatus']
         anew['proctype'] = a['proc:genprocdata/proctype']
+        anew['qcstatus'] = a['proc:genprocdata/validation/status']
         anew['xsiType'] = a['xsiType']
         new_list.append(anew)
 
