@@ -103,6 +103,8 @@ class PBS:
         for line in self.cmds:
             f.write(line+'\n')
 
+        f.close()
+
     def submit(self):
         try:
             cmd = 'qsub ' + self.filename
