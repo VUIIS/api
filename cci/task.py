@@ -1,7 +1,7 @@
 import cluster
 from cluster import PBS
 from datetime import date
-import os
+import os, time
 
 # Job Statuses
 NEED_TO_RUN='NEED_TO_RUN' # assessor that is ready to be launch on the cluster (ACCRE). All the input data for the process to run are there.
@@ -23,11 +23,16 @@ FAILED='Failed' # QA status set by the Image Analyst after looking at the result
 FAILED_NEEDS_REPROC='Failed-needs reprocessing'
 PASSED_EDITED_QA='Passed with edits'
 RERUN='Rerun' # will cause spider to delete results and rerun the processing
+REPROC='Reproc' # will cause spider to zip the current results and put in OLD, and then processing
+OPEN_QC_LIST = [RERUN, REPROC]
 
 # Other Constants
 DEFAULT_PBS_DIR=os.environ['UPLOAD_SPIDER_DIR']+'/PBS'
 DEFAULT_OUT_DIR=os.environ['UPLOAD_SPIDER_DIR']+'/OUTLOG'
 READY_TO_UPLOAD_FLAG_FILENAME = 'READY_TO_UPLOAD.txt'
+OLD_RESOURCE = 'OLD'
+EDITS_RESOURCE = 'EDITS'
+REPROC_RES_SKIP_LIST = [OLD_RESOURCE, EDITS_RESOURCE]
 
 class Task(object):
     def __init__(self, processor, assessor, upload_dir):
@@ -68,7 +73,7 @@ class Task(object):
             
         if memusedmb.strip() != '':
             memused = memusedmb + 'mb'
-            print 'DEBUG:copy memused:'+self.assessor_label+':'+memused
+            #print 'DEBUG:copy memused:'+self.assessor_label+':'+memused
             self.set_memused(memused)
 
     def check_job_usage(self):
@@ -81,7 +86,8 @@ class Task(object):
             if memused == '':
                 self.set_memused('NotFound')
             else:
-                print 'DEBUG:memused and walltime already set, skipping'
+                pass
+                #print('DEBUG:memused and walltime already set, skipping')
             
             return
         
@@ -143,16 +149,55 @@ class Task(object):
         
         out_resource_list = self.assessor.out_resources()
         for out_resource in out_resource_list:
-            print('\t  Removing '+out_resource.label())
-            out_resource.delete() 
+            if out_resource.label() not in REPROC_RES_SKIP_LIST:
+                print('\t  Removing '+out_resource.label())
+                out_resource.delete()
+            
+    def reproc_processing(self):
+        curtime = time.strftime("%Y%m%d-%H%M%S")
+        local_dir = self.assessor_label+'_'+curtime
+        local_zip = local_dir+'.zip'
+        xml_filename = self.upload_dir+'/'+local_dir+'/'+self.assessor_label+'.xml'
+        
+        # Make the temp dir
+        os.makedirs(self.upload_dir+'/'+local_dir)
+        
+        # Download the current resources
+        out_resource_list = self.assessor.out_resources()
+        for out_resource in out_resource_list:
+            if out_resource.label() not in REPROC_RES_SKIP_LIST:
+                os.makedirs(self.upload_dir+'/'+local_dir+'/'+out_resource.label())
+                print('\tDownloading:'+out_resource.label())
+                out_resource.get(self.upload_dir+'/'+local_dir+'/'+out_resource.label(), extract=False)
+        
+        # Download xml of assessor
+        xml = self.assessor.get()
+        f = open(xml_filename,'w')
+        f.write(xml+'\n')
+        f.close()
+        
+        # Zip it all up
+        cmd = 'cd '+self.upload_dir + ' && zip -qr '+local_zip+' '+local_dir+'/'
+        print('DEBUG:running cmd:'+cmd)
+        os.system(cmd)    
+            
+        # Upload it to Archive
+        self.assessor.out_resource(OLD_RESOURCE).file(local_zip).put(self.upload_dir+'/'+local_zip)
+        
+        # Run undo
+        self.undo_processing()
         
     def update_status(self):                
         old_status = self.get_status()
         qcstatus = self.get_qcstatus()
         new_status = old_status
                 
-        if qcstatus == RERUN:
-            print 'DEBUG:qcstatus RERUN:running undo_processing...'
+        if qcstatus == REPROC:
+            print('INFO:qcstatus=REPROC, running reproc_processing...')
+            self.reproc_processing()
+            new_status = NEED_TO_RUN
+        elif qcstatus == RERUN:
+            print('INFO:qcstatus=RERUN, running undo_processing...')
             self.undo_processing()  
             new_status = NEED_TO_RUN
         elif old_status == COMPLETE or old_status == JOB_FAILED:
@@ -179,7 +224,7 @@ class Task(object):
             # TODO: can we see if it's really uploading???
             pass
         else:
-            print 'ERROR:unknown status:'+old_status
+            print('ERROR:unknown status:'+old_status)
             
         if (new_status != old_status):
             print('INFO:changing status from '+old_status+' to '+new_status)
@@ -219,7 +264,7 @@ class Task(object):
         
         if jobid == '' or jobid == '0':
             # TODO: raise exception
-            print 'ERROR:failed to launch job on cluster'
+            print('ERROR:failed to launch job on cluster')
             return False
         else:
             self.set_status(JOB_RUNNING)
@@ -254,7 +299,6 @@ class Task(object):
         elif self.atype == 'fs:fsdata':
             #self.assessor.attrs.set("fs:fsdata/parameters/addParam[name=jobstartdate]/addField", date_str)
             self.assessor.attrs.set('fs:fsdata/jobstartdate', date_str)
-
     
     def get_createdate(self):
         createdate = ''

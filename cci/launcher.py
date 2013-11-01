@@ -14,7 +14,6 @@ import XnatUtils
 import task
 import cluster
 from task import Task
-from datetime import datetime
 
 DEFAULT_QUEUE_LIMIT = 300
 DEFAULT_ROOT_JOB_DIR = '/tmp'
@@ -50,7 +49,7 @@ class Launcher(object):
                 self.upload_dir = upload_dir
 
         except KeyError as e:
-            print "You must set the environment variable %s" % str(e)
+            print("You must set the environment variable %s" % str(e))
             sys.exit(1)  
         
         #if project_process_dict == None:
@@ -69,20 +68,20 @@ class Launcher(object):
         try:
             success = self.lock_quick_update()   
             if not success:
-                print 'ERROR:failed to get lock on quick update'
+                print('ERROR:failed to get lock on quick update')
                 exit(1)                              
 
-            print 'Connecting to XNAT at '+self.xnat_host
+            print('Connecting to XNAT at '+self.xnat_host)
             xnat = Interface(self.xnat_host, self.xnat_user, self.xnat_pass)
             
-            print 'Getting task list...'
+            print('Getting task list...')
             task_list = self.get_open_tasks(xnat)
             
             print(str(len(task_list))+' open jobs found')
 
-            print 'Updating tasks...'
+            print('Updating tasks...')
             for cur_task in task_list:
-                print '     Updating task:'+cur_task.assessor_label
+                print('     Updating task:'+cur_task.assessor_label)
                 task_status = cur_task.update_status()
                 if task_status == task.NEED_TO_RUN:
                     task_queue.append(cur_task)
@@ -98,7 +97,7 @@ class Launcher(object):
         finally:       
             self.unlock_quick_update()                                                      
             xnat.disconnect()
-            print 'Connection to XNAT closed' 
+            print('Connection to XNAT closed')
             
     def get_open_tasks(self, xnat):
         task_list = []
@@ -106,14 +105,15 @@ class Launcher(object):
         
         # iterate projects
         for projectid in project_list:
-            print '===== PROJECT:'+projectid+' ====='          
+            print('===== PROJECT:'+projectid+' =====')          
 
             # Get lists of processors for this project
             exp_proc_list, scan_proc_list = processors.processors_by_type(self.project_process_dict[projectid])
             
             # iterate experiments
             for exp_dict in XnatUtils.list_experiments(xnat, projectid):
-                print '    SESS:'+exp_dict['label']     
+                if 0: 
+                    print('    SESS:'+exp_dict['label'])  
                 task_list.extend(self.get_open_tasks_session(xnat, exp_dict, exp_proc_list, scan_proc_list))
                                   
         return task_list
@@ -128,7 +128,7 @@ class Launcher(object):
         for assr_info in assr_list:  
             task_proc = None
                         
-            if assr_info['procstatus'] not in task.OPEN_STATUS_LIST:
+            if assr_info['procstatus'] not in task.OPEN_STATUS_LIST and assr_info['qcstatus'] not in task.OPEN_QC_LIST:
                 continue
               
             # Look for a match in sess processors
@@ -145,7 +145,7 @@ class Launcher(object):
                         break
                         
             if task_proc == None:
-                print 'WARN:no matching processor found:'+assr_info['assessor_label']
+                print('WARN:no matching processor found:'+assr_info['assessor_label'])
                 continue
           
             # Get a new task with the matched processor
@@ -179,13 +179,13 @@ class Launcher(object):
     def update_session(self, xnat, sess_info, sess_proc_list, scan_proc_list, do_launch=True):
         task_list = self.get_session_tasks(xnat, sess_info, sess_proc_list, scan_proc_list)
         for cur_task in task_list:
-            print '     Updating task:'+cur_task.assessor_label
+            print('     Updating task:'+cur_task.assessor_label)
             task_status = cur_task.update_status()
             if task_status == task.NEED_TO_RUN and do_launch == True and cluster.count_jobs() < self.queue_limit:
                 success = cur_task.launch(self.root_job_dir)
                 if(success != True):
                     # TODO: change status???
-                    print 'ERROR:failed to launch job'
+                    print('ERROR:failed to launch job')
         
     def get_desired_tasks(self, xnat):
         task_list = []
@@ -193,13 +193,13 @@ class Launcher(object):
   
         # iterate projects
         for projectid in project_list:  
-            print '===== PROJECT:'+projectid+' ====='          
+            print('===== PROJECT:'+projectid+' =====')          
             # Get lists of processors for this project
             exp_proc_list, scan_proc_list = processors.processors_by_type(self.project_process_dict[projectid])        
  
             # iterate experiments
             for exp_dict in XnatUtils.list_experiments(xnat, projectid):
-                print '    SESS:'+exp_dict['label']     
+                print('    SESS:'+exp_dict['label'])   
                 task_list.extend(self.get_desired_tasks_session(xnat, exp_dict, exp_proc_list, scan_proc_list))
 
         return task_list
@@ -207,23 +207,21 @@ class Launcher(object):
     def update(self):
         task_queue = []
         
-        print 'Running update, start time:'+str(datetime.now())
-
         try:
             success = self.lock_full_update()
             if not success:
-                print 'ERROR:failed to get lock on full update'
+                print('ERROR:failed to get lock on full update')
                 exit(1)                              
 
-            print 'Connecting to XNAT at '+self.xnat_host
+            print('Connecting to XNAT at '+self.xnat_host)
             xnat = Interface(self.xnat_host, self.xnat_user, self.xnat_pass)
             
-            print 'Getting task list...'
+            print('Getting task list...')
             task_list = self.get_desired_tasks(xnat)
             
-            print 'Updating tasks...'
+            print('Updating tasks...')
             for cur_task in task_list:
-                print '    Updating task:'+cur_task.assessor_label
+                print('    Updating task:'+cur_task.assessor_label)
                 task_status = cur_task.update_status()
                 if task_status == task.NEED_TO_RUN:
                     task_queue.append(cur_task)
@@ -234,43 +232,41 @@ class Launcher(object):
             
             # Launch jobs
             self.launch_jobs(task_queue)
-            
-            print 'Finished update, stop time:'+str(datetime.now())
-            
+                        
         finally:       
             self.unlock_full_update()                                 
             xnat.disconnect()
-            print 'Connection to XNAT closed' 
+            print('Connection to XNAT closed')
     
     def update_status_only(self):            
         try:
-            print 'Connecting to XNAT at '+self.xnat_host
+            print('Connecting to XNAT at '+self.xnat_host)
             xnat = Interface(self.xnat_host, self.xnat_user, self.xnat_pass)
             
-            print 'Getting task list'
+            print('Getting task list')
             task_list = self.get_tasks(xnat)
             
             for cur_task in task_list:
-                print '     Updating task:'+task.assessor_label
+                print('     Updating task:'+task.assessor_label)
                 cur_task.update_status()
                                         
         finally:                                        
             xnat.disconnect()
-            print 'Connection to XNAT closed'
+            print('Connection to XNAT closed')
         
     def relaunch_failed(self):
         task_queue = []
             
         try:
-            print 'Connecting to XNAT at '+self.xnat_host
+            print('Connecting to XNAT at '+self.xnat_host)
             xnat = Interface(self.xnat_host, self.xnat_user, self.xnat_pass)    
                     
-            print 'Getting task list...'
+            print('Getting task list...')
             task_list = self.get_tasks(xnat)
             
             # Change failed tasks to need run and add to queue
             for cur_task in task_list:
-                print '     Updating task:'+task.assessor_label
+                print('     Updating task:'+task.assessor_label)
                 task_status = cur_task.update_status()
                 if cur_task.get_status() == task.JOB_FAILED:
                     cur_task.set_status(task.NEED_TO_RUN)
@@ -282,13 +278,13 @@ class Launcher(object):
             print 'Finished launching jobs'
         finally:                                        
             xnat.disconnect()
-            print 'XNAT connection closed'
+            print('XNAT connection closed')
             
     def launch_jobs(self, task_list):
         # Check cluster
         cur_job_count = cluster.count_jobs()
         if cur_job_count == -1:
-            print 'ERROR:cannot get count of jobs from cluster'
+            print('ERROR:cannot get count of jobs from cluster')
             return
         print(str(cur_job_count)+' jobs currently in queue')
         
@@ -300,12 +296,12 @@ class Launcher(object):
             if cur_task.get_status() != task.NEED_TO_RUN:
                 continue
             
-            print 'Launching job:'+cur_task.assessor_label+', currently '+str(cur_job_count)+' jobs in cluster queue'
+            print('Launching job:'+cur_task.assessor_label+', currently '+str(cur_job_count)+' jobs in cluster queue')
             success = cur_task.launch(self.root_job_dir)
             if(success == True):
                 cur_job_count+=1
             else:
-                print 'ERROR:failed to launch job'
+                print('ERROR:failed to launch job')
                 
     def lock_full_update(self):
         lock_file = self.upload_dir+'/'+FULL_UPDATE_LOCK_FILE

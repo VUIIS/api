@@ -138,4 +138,8 @@ def get_full_object(intf,obj_dict):
         return intf.select('/project/'+proj+'/subject/'+subj)    
     else:
         return None
+    
+def get_assessor(xnat,projid,subjid,sessid,assrid):
+    assessor = xnat.select('/projects/'+projid+'/subjects/'+subjid+'/experiments/'+sessid+'/assessors/'+assrid)
+    return assessor
  
