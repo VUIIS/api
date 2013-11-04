@@ -205,7 +205,7 @@ class Launcher(object):
         return task_list
                                                 
     def update(self):
-        task_queue = []
+        #task_queue = []
         
         try:
             success = self.lock_full_update()
@@ -223,15 +223,15 @@ class Launcher(object):
             for cur_task in task_list:
                 print('    Updating task:'+cur_task.assessor_label)
                 task_status = cur_task.update_status()
-                if task_status == task.NEED_TO_RUN:
-                    task_queue.append(cur_task)
+                #if task_status == task.NEED_TO_RUN:
+                #    task_queue.append(cur_task)
               
             #===== Sort the task queue as desired - random? breadth-first? depth-first? 
-            print(str(len(task_queue))+' jobs ready to be launched')
+            #print(str(len(task_queue))+' jobs ready to be launched')
             #task_queue.sort()
             
             # Launch jobs
-            self.launch_jobs(task_queue)
+            #self.launch_jobs(task_queue)
                         
         finally:       
             self.unlock_full_update()                                 
