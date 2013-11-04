@@ -106,9 +106,56 @@ class Freesurfer_Processor (SessionProcessor):
         je_fpath  = FS_dir+'/'+je_fname  
         FS_subject_dir = FS_dir+'/Subjects/'+FS_label
         FS_inputs = ''
+        brainmask_file = ''
+        control_file = ''
+        wm_file = ''
+        aseg_file = ''
+#        edit_assr = None
+
+#         # Check for FreeSurfer Edits to also download
+#         assr_list = assessor.parent().assessors()
+#         for assr in assr_list:
+#             if assr.datatype() == 'proc:genProcData' and assr.attrs.get('proc:genProcData/proctype'):
+#                 if assr.attrs.get('proc:genProcData/proctype') == 'FreeSurferEdits':
+#                     edit_assr = assr
+#         
+#         if edit_assr == None:
+#             print('INFO:FreeSurferEdits assessor not found.')
+#         else:
+#             edit_assr_label = edit_assr.label()
+#             file_list = assr.out_resource('DATA').files().get()
+#             for f in sorted(file_list): # we sort it so latest datetime stamp is always last
+#                 if f.startswith('brainmask'):
+#                     brainmask_file = f
+#                 elif f.startswith('control.dat'):
+#                     control_file = f
+#                 elif f.startswith('wm.edited.mgz'):
+#                     control_file = f
+#                 elif f.startswith('aseg.edited.mgz'):
+#                     control_file = f
+#                 else:
+#                     print('ERROR:unrecognized file:'+f)
+
+#         # Check for FreeSurfer Edits to also download
+        edit_res = assessor.out_resource(task.EDITS_RESOURCE)
+        if not edit_res.exists():
+            print('INFO:FreeSurfer edits resource not found.')
+        else:
+            file_list = edit_res.files().get()
+            for f in sorted(file_list): # we sort it so latest datetime stamp is always last
+                if f.startswith('brainmask'):
+                    brainmask_file = f
+                elif f.startswith('control.dat'):
+                    control_file = f
+                elif f.startswith('wm.edited.mgz'):
+                    control_file = f
+                elif f.startswith('aseg.edited.mgz'):
+                    control_file = f
+                else:
+                    print('ERROR:unrecognized file:'+f)
         
         cmd = """
-# Get the inputs
+# Download the inputs
 mkdir -p {FS_DIR}"""
         
         # Get nifti file names from T1s, append to FS inputs, and add download commands
@@ -138,14 +185,47 @@ mkdir -p {FS_DIR}"""
             'XNAT_HOST' : os.environ['XNAT_HOST']}
 
         cmd += """
-        
 # Freesurfer Setup
 mkdir -p {FS_DIR}/Subjects
 export FREESURFER_HOME={FREESURFER_HOME}
 source $FREESURFER_HOME/SetUpFreeSurfer.sh
                         
-# Run main freesurfer                      
+# Run FreeSurfer init                     
 recon-all -sd {SUBJECTS_DIR} -s {FS_LABEL} {FS_INPUTS}
+
+# Add FreeSurfer edits if any
+"""
+# 
+#         if brainmask_file != '':
+#             print('DEBUG:brainmask='+brainmask_file)
+#             cmd += "\ncurl -u {XNAT_USER}:{XNAT_PASS} {XNAT_HOST}/data/archive/projects/{PROJ_LABEL}/subjects/{SUBJ_LABEL}/experiments/{SESS_LABEL}/assessors/"+edit_assr_label+"/out/resources/DATA/files/"+brainmask_file+" > {SUBJECTS_DIR}/{FS_LABEL}/mri/brainmask.mgz"
+#         if control_file != '':
+#             print('DEBUG:control='+control_file)
+#             cmd += "\nmkdir -p {SUBJECTS_DIR}/{FS_LABEL}/tmp"
+#             cmd += "\ncurl -u {XNAT_USER}:{XNAT_PASS} {XNAT_HOST}/data/archive/projects/{PROJ_LABEL}/subjects/{SUBJ_LABEL}/experiments/{SESS_LABEL}/assessors/"+edit_assr_label+"/out/resources/DATA/files/"+control_file+" > {SUBJECTS_DIR}/{FS_LABEL}/tmp/control.dat"
+#         if wm_file != '':
+#             print('DEBUG:wm='+wm_file)
+#             cmd += "\ncurl -u {XNAT_USER}:{XNAT_PASS} {XNAT_HOST}/data/archive/projects/{PROJ_LABEL}/subjects/{SUBJ_LABEL}/experiments/{SESS_LABEL}/assessors/"+edit_assr_label+"/out/resources/DATA/files/"+wm_file+" > {SUBJECTS_DIR}/{FS_LABEL}/mri/wm.mgz"
+#         if aseg_file != '':
+#             print('DEBUG:aseg='+aseg_file)
+#             cmd += "\ncurl -u {XNAT_USER}:{XNAT_PASS} {XNAT_HOST}/data/archive/projects/{PROJ_LABEL}/subjects/{SUBJ_LABEL}/experiments/{SESS_LABEL}/assessors/"+edit_assr_label+"/out/resources/DATA/files/"+aseg_file+" > {SUBJECTS_DIR}/{FS_LABEL}/mri/aseg.mgz"
+
+        if brainmask_file != '':
+            print('DEBUG:brainmask='+brainmask_file)
+            cmd += "\ncurl -u {XNAT_USER}:{XNAT_PASS} {XNAT_HOST}/data/archive/projects/{PROJ_LABEL}/subjects/{SUBJ_LABEL}/experiments/{SESS_LABEL}/assessors/"+FS_label+"/out/resources/"+task.EDIT_RESOURCE+"/files/"+brainmask_file+" > {SUBJECTS_DIR}/{FS_LABEL}/mri/brainmask.mgz"
+        if control_file != '':
+            print('DEBUG:control='+control_file)
+            cmd += "\nmkdir -p {SUBJECTS_DIR}/{FS_LABEL}/tmp"
+            cmd += "\ncurl -u {XNAT_USER}:{XNAT_PASS} {XNAT_HOST}/data/archive/projects/{PROJ_LABEL}/subjects/{SUBJ_LABEL}/experiments/{SESS_LABEL}/assessors/"+FS_label+"/out/resources/"+task.EDIT_RESOURCE+"/files/"+control_file+" > {SUBJECTS_DIR}/{FS_LABEL}/tmp/control.dat"
+        if wm_file != '':
+            print('DEBUG:wm='+wm_file)
+            cmd += "\ncurl -u {XNAT_USER}:{XNAT_PASS} {XNAT_HOST}/data/archive/projects/{PROJ_LABEL}/subjects/{SUBJ_LABEL}/experiments/{SESS_LABEL}/assessors/"+FS_label+"/out/resources/"+task.EDIT_RESOURCE+"/files/"+wm_file+" > {SUBJECTS_DIR}/{FS_LABEL}/mri/wm.mgz"
+        if aseg_file != '':
+            print('DEBUG:aseg='+aseg_file)
+            cmd += "\ncurl -u {XNAT_USER}:{XNAT_PASS} {XNAT_HOST}/data/archive/projects/{PROJ_LABEL}/subjects/{SUBJ_LABEL}/experiments/{SESS_LABEL}/assessors/"+FS_label+"/out/resources/"+task.EDIT_RESOURCE+"/files/"+aseg_file+" > {SUBJECTS_DIR}/{FS_LABEL}/mri/aseg.mgz"
+
+        cmd +="""
+        
 recon-all -sd {SUBJECTS_DIR} -s {FS_LABEL} -all -qcache -hippo-subfields
 
 # Create QC snaps
