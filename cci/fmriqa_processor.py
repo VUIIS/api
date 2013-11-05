@@ -5,7 +5,7 @@ DEFAULT_WALLTIME = '00:30:00'
 DEFAULT_MEM = 2048
 DEFAULT_NAME = 'fMRIQA'
 DEFAULT_SCAN_TYPES = ['FMRI', 'REST', 'FMRI_RESTING', 'RESTING']
-    
+
 class FmriQa_Processor (ScanProcessor):
     def __init__(self, fmriqa_path=DEFAULT_FMRIQA_PATH, masimatlab=DEFAULT_MASIMATLAB_PATH, walltime=DEFAULT_WALLTIME, mem_mb=DEFAULT_MEM, proc_name=DEFAULT_NAME, scan_types=DEFAULT_SCAN_TYPES):
         super(FmriQa_Processor, self).__init__(walltime,mem_mb,proc_name)
@@ -25,8 +25,7 @@ class FmriQa_Processor (ScanProcessor):
         proj = assessor.parent().parent().parent().label()
         subj = assessor.parent().parent().label()
         sess = assessor.parent().label()
-        assr = assessor.label()
-        scan = assr.split('-x-')[3]
+        scan = assessor.label().split('-x-')[3]
         fmriqa_path = self.fmriqa_path
         masimatlab = self.masimatlab
         
