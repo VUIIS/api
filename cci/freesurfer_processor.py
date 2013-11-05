@@ -225,7 +225,7 @@ recon-all -sd {SUBJECTS_DIR} -s {FS_LABEL} {FS_INPUTS}
             cmd += "\ncurl -u {XNAT_USER}:{XNAT_PASS} {XNAT_HOST}/data/archive/projects/{PROJ_LABEL}/subjects/{SUBJ_LABEL}/experiments/{SESS_LABEL}/assessors/"+FS_label+"/out/resources/"+task.EDIT_RESOURCE+"/files/"+aseg_file+" > {SUBJECTS_DIR}/{FS_LABEL}/mri/aseg.mgz"
 
         cmd +="""
-        
+# Run all        
 recon-all -sd {SUBJECTS_DIR} -s {FS_LABEL} -all -qcache -hippo-subfields
 
 # Create QC snaps

@@ -165,10 +165,11 @@ class Task(object):
         # Download the current resources
         out_resource_list = self.assessor.out_resources()
         for out_resource in out_resource_list:
-            if out_resource.label() not in REPROC_RES_SKIP_LIST:
-                os.makedirs(self.upload_dir+'/'+local_dir+'/'+out_resource.label())
-                print('\tDownloading:'+out_resource.label())
-                out_resource.get(self.upload_dir+'/'+local_dir+'/'+out_resource.label(), extract=False)
+            olabel = out_resource.label()
+            if olabel not in REPROC_RES_SKIP_LIST:
+                print('\tDownloading:'+olabel)
+                out_res = self.assessor.out_resource(olabel)
+                out_res.get(self.upload_dir+'/'+local_dir, extract=True)
         
         # Download xml of assessor
         xml = self.assessor.get()
@@ -187,22 +188,26 @@ class Task(object):
         # Run undo
         self.undo_processing()
         
+        # TODO:
+        # delete the local copies
+        
     def update_status(self):                
         old_status = self.get_status()
-        qcstatus = self.get_qcstatus()
         new_status = old_status
                 
-        if qcstatus == REPROC:
-            print('INFO:qcstatus=REPROC, running reproc_processing...')
-            self.reproc_processing()
-            new_status = NEED_TO_RUN
-        elif qcstatus == RERUN:
-            print('INFO:qcstatus=RERUN, running undo_processing...')
-            self.undo_processing()  
-            new_status = NEED_TO_RUN
-        elif old_status == COMPLETE or old_status == JOB_FAILED:
-            #self.check_date()
-            pass
+        if old_status == COMPLETE or old_status == JOB_FAILED:
+            qcstatus = self.get_qcstatus()
+            if qcstatus == REPROC:
+                print('INFO:qcstatus=REPROC, running reproc_processing...')
+                self.reproc_processing()
+                new_status = NEED_TO_RUN
+            elif qcstatus == RERUN:
+                print('INFO:qcstatus=RERUN, running undo_processing...')
+                self.undo_processing()  
+                new_status = NEED_TO_RUN
+            else:
+                #self.check_date()
+                pass
         elif old_status == NEED_TO_RUN:
             # TODO: anything, not yet???
             pass
