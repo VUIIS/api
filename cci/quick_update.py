@@ -20,4 +20,4 @@ if __name__ == '__main__':
     # Run the quick update
     settings.myLauncher.update_open_tasks()
 
-    print('INFO:finished quick update, End Time: ', str(datetime.now()))
+    print('INFO:finished quick update, End Time: '+str(datetime.now()))

@@ -20,4 +20,4 @@ if __name__ == '__main__':
     # Run the full update
     settings.myLauncher.update()
 
-    print('INFO:finished full update, End Time: ', str(datetime.now()))
+    print('INFO:finished full update, End Time: '+str(datetime.now()))
