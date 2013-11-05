@@ -95,7 +95,8 @@ class PBS:
         f.write('#PBS -l mem=' + str(self.mem_mb) + 'mb\n')
         f.write('#PBS -o ' + self.outfile+'\n')
         f.write('#PBS -j oe '+ '\n')
-        f.write('\n')        
+        f.write('\n')   
+        f.write('export ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS=1\n')     
         f.write('uname -a') # outputs node info (name, date&time, type, OS, etc)
         f.write('\n')
         
