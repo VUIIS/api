@@ -65,12 +65,12 @@ class Launcher(object):
     def update_open_tasks(self):
         task_queue = []
                 
-        try:
-            success = self.lock_quick_update()   
-            if not success:
-                print('ERROR:failed to get lock on quick update')
-                exit(1)                              
+        success = self.lock_quick_update()   
+        if not success:
+            print('ERROR:failed to get lock on quick update')
+            exit(1)                              
 
+        try:
             print('Connecting to XNAT at '+self.xnat_host)
             xnat = Interface(self.xnat_host, self.xnat_user, self.xnat_pass)
             
@@ -207,18 +207,21 @@ class Launcher(object):
     def update(self):
         #task_queue = []
         
+        success = self.lock_full_update()
+        if not success:
+            print('ERROR:failed to get lock on full update')
+            exit(1)   
+        
         try:
-            success = self.lock_full_update()
-            if not success:
-                print('ERROR:failed to get lock on full update')
-                exit(1)                              
-
             print('Connecting to XNAT at '+self.xnat_host)
             xnat = Interface(self.xnat_host, self.xnat_user, self.xnat_pass)
             
             print('Getting task list...')
             task_list = self.get_desired_tasks(xnat)
             
+            import datetime
+            print('INFO:finished building list of tasks, now updating, Time='+str(datetime.datetime.now()))
+
             print('Updating tasks...')
             for cur_task in task_list:
                 print('    Updating task:'+cur_task.assessor_label)
@@ -232,12 +235,12 @@ class Launcher(object):
             
             # Launch jobs
             #self.launch_jobs(task_queue)
-                        
-        finally:       
-            self.unlock_full_update()                                 
-            xnat.disconnect()
-            print('Connection to XNAT closed')
-    
+                            
+        finally:  
+                self.unlock_full_update()                                 
+                xnat.disconnect()
+                print('Connection to XNAT closed')
+                
     def update_status_only(self):            
         try:
             print('Connecting to XNAT at '+self.xnat_host)
