@@ -47,6 +47,7 @@ class Task(object):
             self.set_createdate_today()
             if self.atype == 'proc:genprocdata':
                 assessor.attrs.set('proc:genprocdata/proctype', self.get_processor_name())
+                assessor.attrs.set('proc:genprocdata/validation/status', JOB_PENDING)
             if processor.has_inputs(assessor):
                 self.set_status(NEED_TO_RUN)
             else:
