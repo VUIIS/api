@@ -72,13 +72,14 @@ def tracejob_info(jobid, jobdate):
   
 class PBS:  
     #constructor
-    def __init__(self,filename,outfile,cmds,walltime_str,mem_mb=2048,email=''):
+    def __init__(self,filename,outfile,cmds,walltime_str,mem_mb=2048,ppn=1,email=''):
         self.filename=filename
         self.outfile=outfile
         self.cmds=cmds
         self.walltime_str=walltime_str
         self.mem_mb=mem_mb
         self.email=email
+        self.ppn=ppn
 
     def write(self):
         pbs_dir = os.path.dirname(self.filename)
@@ -90,13 +91,13 @@ class PBS:
         if self.email != '':
             f.write('#PBS -M ' + self.email+'\n')
             f.write('#PBS -m ae \n')
-        f.write('#PBS -l nodes=1:ppn=1\n')
+        f.write('#PBS -l nodes=1:ppn='+str(self.ppn)+'\n')
         f.write('#PBS -l walltime='+str(self.walltime_str)+'\n')
         f.write('#PBS -l mem=' + str(self.mem_mb) + 'mb\n')
         f.write('#PBS -o ' + self.outfile+'\n')
         f.write('#PBS -j oe '+ '\n')
-        f.write('\n')   
-        f.write('export ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS=1\n')     
+        f.write('\n')
+        f.write('export ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS='+str(self.ppn)+'\n')     
         f.write('uname -a') # outputs node info (name, date&time, type, OS, etc)
         f.write('\n')
         

@@ -10,6 +10,7 @@ import os,sys
 from pyxnat import Interface
 from processors import ScanProcessor,SessionProcessor
 import processors
+import modules
 import XnatUtils
 import task
 import cluster
@@ -19,14 +20,17 @@ DEFAULT_QUEUE_LIMIT = 300
 DEFAULT_ROOT_JOB_DIR = '/tmp'
 FULL_UPDATE_LOCK_FILE  = 'FULL_UPDATE_RUNNING.txt'
 QUICK_UPDATE_LOCK_FILE  = 'QUICK_UPDATE_RUNNING.txt'
+MODULES_LOCK_FILE='MODULES_RUNNING.txt'
 
 #TODO: add sort options
 
 class Launcher(object):
-    def __init__(self,project_process_dict,queue_limit=DEFAULT_QUEUE_LIMIT, root_job_dir=DEFAULT_ROOT_JOB_DIR, xnat_user=None, xnat_pass=None, xnat_host=None, upload_dir=None):
+    def __init__(self,project_process_dict,project_modules_dict,queue_limit=DEFAULT_QUEUE_LIMIT, root_job_dir=DEFAULT_ROOT_JOB_DIR, xnat_user=None, xnat_pass=None, xnat_host=None, upload_dir=None):
         self.queue_limit = queue_limit
         self.root_job_dir = root_job_dir
         self.project_process_dict = project_process_dict
+        self.project_modules_dict = project_modules_dict
+
         try:
             if xnat_user == None:
                 self.xnat_user = os.environ['XNAT_USER']
@@ -62,10 +66,12 @@ class Launcher(object):
         # TODO: check the project process list
         # TODO: check that projects exist
                 
-    def update_open_tasks(self):
+    def update_open_tasks(self, settings_filename):
         task_queue = []
-                
-        success = self.lock_quick_update()   
+        
+        print('\n-------------- Quick Update --------------')
+        
+        success = self.lock_quick_update(settings_filename)   
         if not success:
             print('ERROR:failed to get lock on quick update')
             exit(1)                              
@@ -95,9 +101,71 @@ class Launcher(object):
             self.launch_jobs(task_queue)
             
         finally:       
-            self.unlock_quick_update()                                                      
+            self.unlock_quick_update(settings_filename)                                                      
             xnat.disconnect()
             print('Connection to XNAT closed')
+            
+    def update_modules(self,settings_filename):
+        try:
+            print('\n-------------- Run Modules --------------')
+            print('Connecting to XNAT at '+self.xnat_host)
+            xnat = Interface(self.xnat_host, self.xnat_user, self.xnat_pass)
+         
+            success = self.lock_setup_inputs(settings_filename)
+            if not success:
+                print('ERROR:failed to get lock on full update')
+                exit(1)
+         
+            # List of projects:
+            project_list = list(self.project_modules_dict.keys())
+            
+            # List of Modules:
+            for project in project_list:
+                print'\n=========== project: '+project+'==========='
+            #prerun
+                self.module_prerun(project)
+                
+                #run
+                self.module_run(xnat,project)
+                
+                #after run
+                self.module_afterrun(xnat,project)
+                        
+        finally:       
+            self.unlock_setup_inputs(settings_filename)                                 
+            xnat.disconnect()
+            print('Connection to XNAT closed')
+                        
+    def module_prerun(self,projectID):    
+        # for all of the module
+        for mod in self.project_modules_dict[projectID]:
+            mod.prerun()
+            
+    def module_run(self,xnat,projectID):
+        #get the different list:
+        exp_mod_list, scan_mod_list = modules.modules_by_type(self.project_modules_dict[projectID])  
+        
+        # Querying through XNAT
+        for subject in XnatUtils.list_subjects(xnat,projectID):
+            for experiment in XnatUtils.list_experiments(xnat, projectID,subject['ID']):
+                #experiment Modules:
+                print ' +Subject: '+subject['label']+' / Session: '+experiment['label']
+                for exp_mod in exp_mod_list:
+                    print'   * Module: '+exp_mod.getname()
+                    exp_mod.run(xnat,projectID,subject['label'],experiment['label'])
+                    
+                #Scan Modules:
+                if scan_mod_list:
+                    for scan in XnatUtils.list_scans(xnat,projectID,subject['ID'],experiment['ID']):
+                        print'   + Scan: '+scan['scan_id']
+                        for scan_mod in scan_mod_list:
+                            print'     * Module: '+scan_mod.getname()
+                            scan_mod.run(xnat,projectID,subject['label'],experiment['label'],scan['scan_id'])
+            
+    def module_afterrun(self,xnat,projectID):    
+        # for all of the module
+        for mod in self.project_modules_dict[projectID]:
+            mod.afterrun(xnat,projectID)
             
     def get_open_tasks(self, xnat):
         task_list = []
@@ -204,10 +272,10 @@ class Launcher(object):
 
         return task_list
                                                 
-    def update(self):
-        #task_queue = []
+    def update(self, settings_filename):        
+        print('\n-------------- Full Update --------------')
         
-        success = self.lock_full_update()
+        success = self.lock_full_update(settings_filename)
         if not success:
             print('ERROR:failed to get lock on full update')
             exit(1)   
@@ -226,63 +294,12 @@ class Launcher(object):
             for cur_task in task_list:
                 print('    Updating task:'+cur_task.assessor_label)
                 task_status = cur_task.update_status()
-                #if task_status == task.NEED_TO_RUN:
-                #    task_queue.append(cur_task)
-              
-            #===== Sort the task queue as desired - random? breadth-first? depth-first? 
-            #print(str(len(task_queue))+' jobs ready to be launched')
-            #task_queue.sort()
-            
-            # Launch jobs
-            #self.launch_jobs(task_queue)
                             
         finally:  
-                self.unlock_full_update()                                 
+                self.unlock_full_update(settings_filename)                                 
                 xnat.disconnect()
                 print('Connection to XNAT closed')
                 
-    def update_status_only(self):            
-        try:
-            print('Connecting to XNAT at '+self.xnat_host)
-            xnat = Interface(self.xnat_host, self.xnat_user, self.xnat_pass)
-            
-            print('Getting task list')
-            task_list = self.get_tasks(xnat)
-            
-            for cur_task in task_list:
-                print('     Updating task:'+task.assessor_label)
-                cur_task.update_status()
-                                        
-        finally:                                        
-            xnat.disconnect()
-            print('Connection to XNAT closed')
-        
-    def relaunch_failed(self):
-        task_queue = []
-            
-        try:
-            print('Connecting to XNAT at '+self.xnat_host)
-            xnat = Interface(self.xnat_host, self.xnat_user, self.xnat_pass)    
-                    
-            print('Getting task list...')
-            task_list = self.get_tasks(xnat)
-            
-            # Change failed tasks to need run and add to queue
-            for cur_task in task_list:
-                print('     Updating task:'+task.assessor_label)
-                task_status = cur_task.update_status()
-                if cur_task.get_status() == task.JOB_FAILED:
-                    cur_task.set_status(task.NEED_TO_RUN)
-                    task_queue.append(cur_task)
-                        
-            # Launch jobs
-            print(str(len(task_queue))+' jobs to relaunch')
-            self.launch_jobs(task_queue)
-            print 'Finished launching jobs'
-        finally:                                        
-            xnat.disconnect()
-            print('XNAT connection closed')
-            
     def launch_jobs(self, task_list):
         # Check cluster
         cur_job_count = cluster.count_jobs()
@@ -301,13 +318,16 @@ class Launcher(object):
             
             print('Launching job:'+cur_task.assessor_label+', currently '+str(cur_job_count)+' jobs in cluster queue')
             success = cur_task.launch(self.root_job_dir)
-            if(success == True):
-                cur_job_count+=1
-            else:
+            if(success != True):
                 print('ERROR:failed to launch job')
+
+            cur_job_count = cluster.count_jobs()
+            if cur_job_count == -1:
+                print('ERROR:cannot get count of jobs from cluster')
+                return
                 
-    def lock_full_update(self):
-        lock_file = self.upload_dir+'/'+FULL_UPDATE_LOCK_FILE
+    def lock_full_update(self,settings_filename):
+        lock_file = self.upload_dir+'/'+settings_filename+'_'+FULL_UPDATE_LOCK_FILE
         
         if os.path.exists(lock_file):
             return False
@@ -315,8 +335,8 @@ class Launcher(object):
             open(lock_file, 'w').close()
             return True
                 
-    def lock_quick_update(self):
-        lock_file = self.upload_dir+'/'+QUICK_UPDATE_LOCK_FILE
+    def lock_quick_update(self,settings_filename):
+        lock_file = self.upload_dir+'/'+settings_filename+'_'+QUICK_UPDATE_LOCK_FILE
         
         if os.path.exists(lock_file):
             return False
@@ -324,14 +344,29 @@ class Launcher(object):
             open(lock_file, 'w').close()
             return True
         
-    def unlock_full_update(self):
-        lock_file = self.upload_dir+'/'+FULL_UPDATE_LOCK_FILE
+    def lock_setup_inputs(self,settings_filename):
+        lock_file = self.upload_dir+'/'+settings_filename+'_'+MODULES_LOCK_FILE
+        
+        if os.path.exists(lock_file):
+            return False
+        else:
+            open(lock_file, 'w').close()
+            return True
+            
+    def unlock_full_update(self,settings_filename):
+        lock_file = self.upload_dir+'/'+settings_filename+'_'+FULL_UPDATE_LOCK_FILE
         
         if os.path.exists(lock_file):
            os.remove(lock_file)
                 
-    def unlock_quick_update(self):
-        lock_file = self.upload_dir+'/'+QUICK_UPDATE_LOCK_FILE
+    def unlock_quick_update(self,settings_filename):
+        lock_file = self.upload_dir+'/'+settings_filename+'_'+QUICK_UPDATE_LOCK_FILE
+        
+        if os.path.exists(lock_file):
+            os.remove(lock_file)
+    
+    def unlock_setup_inputs(self,settings_filename):
+        lock_file = self.upload_dir+'/'+settings_filename+'_'+MODULES_LOCK_FILE
         
         if os.path.exists(lock_file):
             os.remove(lock_file)

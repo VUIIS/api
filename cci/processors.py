@@ -8,10 +8,11 @@ USER_HOME = expanduser("~")
 DEFAULT_MASIMATLAB_PATH = os.path.join(USER_HOME,'masimatlab')
 
 class Processor(object):
-    def __init__(self,walltime_str,memreq_mb,name,xsitype='proc:genProcData'):
+    def __init__(self,walltime_str,memreq_mb,name,ppn=1,xsitype='proc:genProcData'):
         self.walltime_str=walltime_str # 00:00:00 format
         self.memreq_mb=memreq_mb  # memory required in megabytes      
         self.name=name 
+        self.ppn = ppn
         self.xsitype = xsitype
 
     # has_inputs - does this object have the required inputs? e.g. NIFTI format of the required scan type and quality and are there no conflicting inputs, i.e. only 1 required by 2 found?
@@ -32,8 +33,8 @@ class ScanProcessor(Processor):
     def should_run(): 
         raise NotImplementedError()
     
-    def __init__(self,walltime_str,memreq_mb,name):
-        super(ScanProcessor, self).__init__(walltime_str, memreq_mb, name)
+    def __init__(self,walltime_str,memreq_mb,name, ppn=1):
+        super(ScanProcessor, self).__init__(walltime_str, memreq_mb, name, ppn)
          
     def get_assessor_name(self,scan_dict):
         subj_label = scan_dict['subject_label']
@@ -55,8 +56,8 @@ class SessionProcessor(Processor):
     def should_run(): 
         raise NotImplementedError()
     
-    def __init__(self,walltime_str,memreq_mb,name):
-        super(SessionProcessor, self).__init__(walltime_str,memreq_mb,name)
+    def __init__(self,walltime_str,memreq_mb,name,ppn=1):
+        super(SessionProcessor, self).__init__(walltime_str,memreq_mb,name,ppn)
         
     def get_assessor_name(self,session_dict):  
         proj_label = session_dict['project']

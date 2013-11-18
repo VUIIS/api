@@ -16,8 +16,9 @@ if __name__ == '__main__':
     # Load the settings file
     print('INFO:loading settings from:'+settings_path)
     settings = imp.load_source('settings', settings_path)
+    settings_filename=os.path.splitext(os.path.basename(settings_path))[0]
 
     # Run the quick update
-    settings.myLauncher.update_open_tasks()
+    settings.myLauncher.update_open_tasks(settings_filename)
 
     print('INFO:finished quick update, End Time: '+str(datetime.now()))

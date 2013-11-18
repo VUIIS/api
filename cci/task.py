@@ -152,7 +152,11 @@ class Task(object):
         for out_resource in out_resource_list:
             if out_resource.label() not in REPROC_RES_SKIP_LIST:
                 print('\t  Removing '+out_resource.label())
-                out_resource.delete()
+                try:
+                    out_resource.delete()
+                except pyxnat.core.errors.DatabaseError:
+                    print('\t ERROR:deleting resource.')
+                    pass
             
     def reproc_processing(self):
         curtime = time.strftime("%Y%m%d-%H%M%S")
@@ -199,11 +203,11 @@ class Task(object):
         if old_status == COMPLETE or old_status == JOB_FAILED:
             qcstatus = self.get_qcstatus()
             if qcstatus == REPROC:
-                print('INFO:qcstatus=REPROC, running reproc_processing...')
+                print('\t *INFO:qcstatus=REPROC, running reproc_processing...')
                 self.reproc_processing()
                 new_status = NEED_TO_RUN
             elif qcstatus == RERUN:
-                print('INFO:qcstatus=RERUN, running undo_processing...')
+                print('\t *INFO:qcstatus=RERUN, running undo_processing...')
                 self.undo_processing()  
                 new_status = NEED_TO_RUN
             else:
@@ -230,10 +234,10 @@ class Task(object):
             # TODO: can we see if it's really uploading???
             pass
         else:
-            print('ERROR:unknown status:'+old_status)
+            print('\t *ERROR:unknown status:'+old_status)
             
         if (new_status != old_status):
-            print('INFO:changing status from '+old_status+' to '+new_status)
+            print('\t *INFO:changing status from '+old_status+' to '+new_status)
             self.set_status(new_status) 
         
             # Update QC Status        
@@ -264,7 +268,7 @@ class Task(object):
         cmds = self.commands(jobdir)
         pbsfile = self.pbs_path()
         outlog = self.outlog_path()
-        pbs = PBS(pbsfile,outlog,cmds,self.processor.walltime_str,self.processor.memreq_mb)
+        pbs = PBS(pbsfile,outlog,cmds,self.processor.walltime_str,self.processor.memreq_mb,self.processor.ppn)
         pbs.write()
         jobid = pbs.submit()
         
