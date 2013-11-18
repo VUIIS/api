@@ -149,7 +149,7 @@ def set_check_assessor_status(assessor_label_list,emailaddress):
                     new_assessor_list.append(assessor_label)
                 elif assessor.exists():
                     #check status :
-                    if assessor.attrs.get('proc:genProcData/procstatus') == COMPLETE:
+                    if assessor.attrs.get('proc:genProcData/procstatus') == COMPLETE or assessor.attrs.get('proc:genProcData/procstatus') == READY_TO_COMPLETE:
                         if not os.path.exists(assessor_path+'/ALREADY_SEND_EMAIL.txt'):
                             open(assessor_path+'/ALREADY_SEND_EMAIL.txt', 'w').close()
                         print 'Data already exist.\n'
