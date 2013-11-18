@@ -1,0 +1,9 @@
+#From the cci package
+from launcher import Launcher
+#From personal Xnat_modules
+from dcm2nii_module import dcm2nii_Module
+from dcm2nii_phillips_module import dcm2nii_phillips_Module
+from Extract_physlog_module import Extract_physlog_Module
+from Preview_NIFTI_module import Preview_NIFTI_Module
+from Set_Scan_Type_module import Set_Scan_Type_Module
+from Unique_Series_Description_module import Unique_Series_Description_Module
