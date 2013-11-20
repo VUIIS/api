@@ -2,7 +2,7 @@ from modules import ScanModule
 import os
 import subprocess as sb
 
-DEFAULT_DCM2NII='/gpfs21/scratch/mcr/'
+DEFAULT_DCM2NII='/gpfs21/scratch/mcr/mricron'
 DEFAULT_TPM_PATH='/tmp/dcm2nii_temp/'
 DEFAULT_MODULE_NAME='dcm2nii'
 DEFAULT_TEXT_REPORT='ERROR/WARNING for dcm2nii :\n'
