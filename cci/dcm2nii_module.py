@@ -129,7 +129,6 @@ class dcm2nii_Module(ScanModule):
                     
                     #more than one NIFTI uploaded
                     if number_of_nifti>1:
-                        send_an_email
                         self.report('WARNING: more than one NIFTI upload for Subject/Experiment : '+subject+'/'+experiment+'/'+scan)
                         
                     #nothing upload
