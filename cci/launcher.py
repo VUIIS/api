@@ -15,6 +15,7 @@ import XnatUtils
 import task
 import cluster
 from task import Task
+from datetime import datetime
 
 DEFAULT_QUEUE_LIMIT = 300
 DEFAULT_ROOT_JOB_DIR = '/tmp'
@@ -105,7 +106,7 @@ class Launcher(object):
             xnat.disconnect()
             print('Connection to XNAT closed')
             
-    def update_modules(self,settings_filename):
+    def update_modules(self,settings_filename,mod_time=None):
         try:
             print('\n-------------- Run Modules --------------')
             print('Connecting to XNAT at '+self.xnat_host)
@@ -126,7 +127,7 @@ class Launcher(object):
                 self.module_prerun(project)
                 
                 #run
-                self.module_run(xnat,project)
+                self.module_run(xnat,project,mod_time)
                 
                 #after run
                 self.module_afterrun(xnat,project)
@@ -141,13 +142,19 @@ class Launcher(object):
         for mod in self.project_modules_dict[projectID]:
             mod.prerun()
             
-    def module_run(self,xnat,projectID):
+    def module_run(self,xnat,projectID, mod_time=None):
         #get the different list:
         exp_mod_list, scan_mod_list = modules.modules_by_type(self.project_modules_dict[projectID])  
         
         # Querying through XNAT
-        for subject in XnatUtils.list_subjects(xnat,projectID):
-            for experiment in XnatUtils.list_experiments(xnat, projectID,subject['ID']):
+        for subject in XnatUtils.list_subjects(xnat,projectID):            
+            if mod_time != None:
+                last_mod = datetime.strptime(subject['last_modified'][0:10],"%Y-%m-%d")
+                if last_mod < mod_time:
+                    print(' +Subject:'+subject['label']+', skipping subject, not modified')
+                    continue
+            
+            for experiment in XnatUtils.list_experiments(xnat, projectID, subject['ID']):
                 #experiment Modules:
                 print ' +Subject: '+subject['label']+' / Session: '+experiment['label']
                 for exp_mod in exp_mod_list:
@@ -255,7 +262,7 @@ class Launcher(object):
                     # TODO: change status???
                     print('ERROR:failed to launch job')
         
-    def get_desired_tasks(self, xnat):
+    def get_desired_tasks(self, xnat, mod_time=None):
         task_list = []
         project_list = list(self.project_process_dict.keys())
   
@@ -267,12 +274,18 @@ class Launcher(object):
  
             # iterate experiments
             for exp_dict in XnatUtils.list_experiments(xnat, projectid):
+                if mod_time != None:
+                    last_mod = datetime.strptime(exp_dict['xnat:subjectdata/meta/last_modified'][0:19],"%Y-%m-%d %H:%M:%S")
+                    if last_mod < mod_time:
+                        print('    SESS:'+exp_dict['label']+', skipping session, not modified')   
+                        continue
+                
                 print('    SESS:'+exp_dict['label'])   
                 task_list.extend(self.get_desired_tasks_session(xnat, exp_dict, exp_proc_list, scan_proc_list))
 
         return task_list
                                                 
-    def update(self, settings_filename):        
+    def update(self, settings_filename, mod_time=False):        
         print('\n-------------- Full Update --------------')
         
         success = self.lock_full_update(settings_filename)
@@ -285,7 +298,7 @@ class Launcher(object):
             xnat = Interface(self.xnat_host, self.xnat_user, self.xnat_pass)
             
             print('Getting task list...')
-            task_list = self.get_desired_tasks(xnat)
+            task_list = self.get_desired_tasks(xnat, mod_time)
             
             import datetime
             print('INFO:finished building list of tasks, now updating, Time='+str(datetime.datetime.now()))

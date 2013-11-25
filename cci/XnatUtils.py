@@ -141,7 +141,7 @@ def list_subjects(intf, projectid=None):
     else:
         post_uri = '/REST/subjects'
 
-    post_uri += '?columns=ID,project,label,URI'
+    post_uri += '?columns=ID,project,label,URI,last_modified'
     subject_list = intf._get_json(post_uri)
     
     # Override the project returned to be the one we queried
@@ -161,7 +161,7 @@ def list_experiments(intf, projectid=None, subjectid=None):
     else:
         return None
     
-    post_uri += '?columns=ID,URI,subject_label,subject_ID,modality,project,date,xsiType,label'
+    post_uri += '?columns=ID,URI,subject_label,subject_ID,modality,project,date,xsiType,label,xnat:subjectdata/meta/last_modified'
     experiment_list = intf._get_json(post_uri)
     
     # Override the project returned to be the one we queried
@@ -173,36 +173,37 @@ def list_experiments(intf, projectid=None, subjectid=None):
 
 def list_scans(intf, projectid, subjectid, experimentid):
     post_uri = '/REST/projects/'+projectid+'/subjects/'+subjectid+'/experiments'
-    post_uri += '?columns=ID,URI,label,subject_label,subject_id,project'
-    post_uri += ',xnat:mrsessiondata/scans/scan/id'
-    post_uri += ',xnat:mrsessiondata/scans/scan/type'
-    post_uri += ',xnat:mrsessiondata/scans/scan/quality'
-    post_uri += ',xnat:mrsessiondata/scans/scan/note'
-    post_uri += ',xnat:mrsessiondata/scans/scan/frames'
-    post_uri += ',xnat:mrsessiondata/scans/scan/series_description'
+    post_uri += '?columns=ID,URI,label,subject_label,project'
+    post_uri += ',xnat:imagesessiondata/scans/scan/id'
+    post_uri += ',xnat:imagesessiondata/scans/scan/type'
+    post_uri += ',xnat:imagesessiondata/scans/scan/quality'
+    post_uri += ',xnat:imagesessiondata/scans/scan/note'
+    post_uri += ',xnat:imagesessiondata/scans/scan/frames'
+    post_uri += ',xnat:imagesessiondata/scans/scan/series_description'
+    post_uri += ',xnat:imagesessiondata/subject_id'
     scan_list = intf._get_json(post_uri)
     new_list = []
         
     for s in scan_list:
         if s['ID'] == experimentid or s['label'] == experimentid:
             snew = {}
-            snew['scan_id'] = s['xnat:mrsessiondata/scans/scan/id']
-            snew['scan_label'] = s['xnat:mrsessiondata/scans/scan/id']
-            snew['scan_quality'] = s['xnat:mrsessiondata/scans/scan/quality']
-            snew['scan_note'] = s['xnat:mrsessiondata/scans/scan/note']
-            snew['scan_frames'] = s['xnat:mrsessiondata/scans/scan/frames']
-            snew['scan_description'] = s['xnat:mrsessiondata/scans/scan/series_description']
-            snew['scan_type'] = s['xnat:mrsessiondata/scans/scan/type']
-            snew['ID'] = s['xnat:mrsessiondata/scans/scan/id']
-            snew['label'] = s['xnat:mrsessiondata/scans/scan/id']
-            snew['quality'] = s['xnat:mrsessiondata/scans/scan/quality']
-            snew['note'] = s['xnat:mrsessiondata/scans/scan/note']
-            snew['frames'] = s['xnat:mrsessiondata/scans/scan/frames']
-            snew['series_description'] = s['xnat:mrsessiondata/scans/scan/series_description']
-            snew['type'] = s['xnat:mrsessiondata/scans/scan/type']
+            snew['scan_id'] = s['xnat:imagesessiondata/scans/scan/id']
+            snew['scan_label'] = s['xnat:imagesessiondata/scans/scan/id']
+            snew['scan_quality'] = s['xnat:imagesessiondata/scans/scan/quality']
+            snew['scan_note'] = s['xnat:imagesessiondata/scans/scan/note']
+            snew['scan_frames'] = s['xnat:imagesessiondata/scans/scan/frames']
+            snew['scan_description'] = s['xnat:imagesessiondata/scans/scan/series_description']
+            snew['scan_type'] = s['xnat:imagesessiondata/scans/scan/type']
+            snew['ID'] = s['xnat:imagesessiondata/scans/scan/id']
+            snew['label'] = s['xnat:imagesessiondata/scans/scan/id']
+            snew['quality'] = s['xnat:imagesessiondata/scans/scan/quality']
+            snew['note'] = s['xnat:imagesessiondata/scans/scan/note']
+            snew['frames'] = s['xnat:imagesessiondata/scans/scan/frames']
+            snew['series_description'] = s['xnat:imagesessiondata/scans/scan/series_description']
+            snew['type'] = s['xnat:imagesessiondata/scans/scan/type']
             snew['project_id'] = projectid
             snew['project_label'] = projectid
-            snew['subject_id'] = s['xnat:mrsessiondata/subject_id']
+            snew['subject_id'] = s['xnat:imagesessiondata/subject_id']
             snew['subject_label'] = s['subject_label']
             snew['session_id'] = s['ID']
             snew['session_label'] = s['label']
@@ -221,7 +222,7 @@ def list_assessors(intf, projectid, subjectid, experimentid):
     
     # First get FreeSurfer
     post_uri = '/REST/projects/'+projectid+'/subjects/'+subjectid+'/experiments/'+experimentid+'/assessors'
-    post_uri += '?columns=ID,label,URI,xsiType,project,xnat:mrsessiondata/subject_id,xnat:mrsessiondata/id,xnat:mrsessiondata/label,URI,fs:fsData/procstatus,fs:fsData/validation/status&xsiType=fs:fsData' 
+    post_uri += '?columns=ID,label,URI,xsiType,project,xnat:imagesessiondata/subject_id,xnat:imagesessiondata/id,xnat:imagesessiondata/label,URI,fs:fsData/procstatus,fs:fsData/validation/status&xsiType=fs:fsData' 
     assessor_list = intf._get_json(post_uri)
         
     for a in assessor_list:
@@ -234,9 +235,9 @@ def list_assessors(intf, projectid, subjectid, experimentid):
         anew['assessor_uri'] = a['URI']
         anew['project_id'] = projectid
         anew['project_label'] = projectid
-        anew['subject_id'] = a['xnat:mrsessiondata/subject_id']
-        anew['session_id'] = a['xnat:mrsessiondata/id']
-        anew['session_label'] = a['xnat:mrsessiondata/label']
+        anew['subject_id'] = a['xnat:imagesessiondata/subject_id']
+        anew['session_id'] = a['xnat:imagesessiondata/id']
+        anew['session_label'] = a['xnat:imagesessiondata/label']
         anew['procstatus'] = a['fs:fsdata/procstatus']
         anew['qcstatus'] = a['fs:fsdata/validation/status']
         anew['proctype'] = 'FreeSurfer'
@@ -245,7 +246,7 @@ def list_assessors(intf, projectid, subjectid, experimentid):
         
     # Then add genProcData
     post_uri = '/REST/projects/'+projectid+'/subjects/'+subjectid+'/experiments/'+experimentid+'/assessors'
-    post_uri += '?columns=ID,label,URI,xsiType,project,xnat:mrsessiondata/subject_id,xnat:mrsessiondata/id,xnat:mrsessiondata/label,proc:genprocdata/procstatus,proc:genprocdata/proctype,proc:genprocdata/validation/status&xsiType=proc:genprocdata' 
+    post_uri += '?columns=ID,label,URI,xsiType,project,xnat:imagesessiondata/subject_id,xnat:imagesessiondata/id,xnat:imagesessiondata/label,proc:genprocdata/procstatus,proc:genprocdata/proctype,proc:genprocdata/validation/status&xsiType=proc:genprocdata' 
     assessor_list = intf._get_json(post_uri)
         
     for a in assessor_list:
@@ -258,9 +259,9 @@ def list_assessors(intf, projectid, subjectid, experimentid):
         anew['assessor_uri'] = a['URI']
         anew['project_id'] = projectid
         anew['project_label'] = projectid
-        anew['subject_id'] = a['xnat:mrsessiondata/subject_id']
-        anew['session_id'] = a['xnat:mrsessiondata/id']
-        anew['session_label'] = a['xnat:mrsessiondata/label']
+        anew['subject_id'] = a['xnat:imagesessiondata/subject_id']
+        anew['session_id'] = a['xnat:imagesessiondata/id']
+        anew['session_label'] = a['xnat:imagesessiondata/label']
         anew['procstatus'] = a['proc:genprocdata/procstatus']
         anew['proctype'] = a['proc:genprocdata/proctype']
         anew['qcstatus'] = a['proc:genprocdata/validation/status']
