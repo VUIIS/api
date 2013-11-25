@@ -547,10 +547,10 @@ def download_AssessorType(Outputdirectory,projectName,subject,experiment,List_pr
     try:
         xnat = Interface(VUIISxnat_host, VUIISxnat_user, VUIISxnat_pwd)
         
-        for assessor_label in list_assessors(xnat, projectName, subject, experiment):
+        for assessor in list_assessors(xnat, projectName, subject, experiment):
             for proc_type in List_process_type:
-                if proc_type==assessor_label.split('-x-')[-1]:
-                    ASSESSOR=xnat.select('/project/'+projectName+'/subjects/'+subject+'/experiments/'+experiment+'/assessors/'+assessor_label)
+                if proc_type==assessor['label'].split('-x-')[-1]:
+                    ASSESSOR=xnat.select('/project/'+projectName+'/subjects/'+subject+'/experiments/'+experiment+'/assessors/'+assessor['label'])
                     dl_good_resources_assessor(ASSESSOR,resource_list,Outputdirectory,all_resources)
         
     finally:                                        
