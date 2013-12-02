@@ -40,22 +40,24 @@ class SpiderProcessHandler:
         self.error=1
         self.finish=1
         
-    def add_pdf(self,pdfpath):
+    def add_pdf(self,filepath):
         #Check if it's a ps:
-        if os.path.splitext(pdfpath)[1].lower=='.ps':
-            ps=os.path.basename(pdfpath)
-            pdf_new_path=os.path.splitext(pdfpath)[0]+'.pdf'
-            print '   -Converting '+ps+' file into a PDF '+pdfpath+' ...'
+        if os.path.splitext(filepath)[1].lower=='.ps':
+            ps=os.path.basename(filepath)
+            pdf_path=os.path.splitext(filepath)[0]+'.pdf'
+            print '  -Converting '+ps+' file into a PDF '+pdf_path+' ...'
             #convertion in pdf
-            os.system('ps2pdf '+pdfpath+' '+pdf_new_path)
+            os.system('ps2pdf '+filepath+' '+pdf_path)
         else:
-            pdf_new_path=pdfpath
+            pdf_path=filepath
+            
         #make the resource folder
         if not os.path.exists(self.dir+'/PDF'):
             os.mkdir(self.dir+'/PDF')
+            
         #mv the pdf
-        print'  -Copying PDF: '+pdf_new_path+' to '+self.dir
-        os.system('cp '+pdf_new_path+' '+self.dir+'/PDF/')
+        print'  -Copying PDF: '+pdf_path+' to '+self.dir
+        os.system('cp '+pdf_path+' '+self.dir+'/PDF/')
         self.finish=1
         
     def add_snapshot(self,snapshot):
