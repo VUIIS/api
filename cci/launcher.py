@@ -26,11 +26,12 @@ MODULES_LOCK_FILE='MODULES_RUNNING.txt'
 #TODO: add sort options
 
 class Launcher(object):
-    def __init__(self,project_process_dict,project_modules_dict,queue_limit=DEFAULT_QUEUE_LIMIT, root_job_dir=DEFAULT_ROOT_JOB_DIR, xnat_user=None, xnat_pass=None, xnat_host=None, upload_dir=None):
+    def __init__(self,project_process_dict,project_modules_dict,queue_limit=DEFAULT_QUEUE_LIMIT, root_job_dir=DEFAULT_ROOT_JOB_DIR, xnat_user=None, xnat_pass=None, xnat_host=None, upload_dir=None, job_email=None):
         self.queue_limit = queue_limit
         self.root_job_dir = root_job_dir
         self.project_process_dict = project_process_dict
         self.project_modules_dict = project_modules_dict
+        self.job_email
 
         try:
             if xnat_user == None:
@@ -330,7 +331,7 @@ class Launcher(object):
                 continue
             
             print('Launching job:'+cur_task.assessor_label+', currently '+str(cur_job_count)+' jobs in cluster queue')
-            success = cur_task.launch(self.root_job_dir)
+            success = cur_task.launch(self.root_job_dir,self.job_email)
             if(success != True):
                 print('ERROR:failed to launch job')
 

@@ -90,7 +90,7 @@ class PBS:
         f.write('#!/bin/bash\n')
         if self.email != '':
             f.write('#PBS -M ' + self.email+'\n')
-            f.write('#PBS -m ae \n')
+            f.write('#PBS -m bae \n')
         f.write('#PBS -l nodes=1:ppn='+str(self.ppn)+'\n')
         f.write('#PBS -l walltime='+str(self.walltime_str)+'\n')
         f.write('#PBS -l mem=' + str(self.mem_mb) + 'mb\n')
