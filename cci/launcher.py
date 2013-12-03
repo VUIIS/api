@@ -31,8 +31,8 @@ class Launcher(object):
         self.root_job_dir = root_job_dir
         self.project_process_dict = project_process_dict
         self.project_modules_dict = project_modules_dict
-        self.job_email
-        self.job_email_options
+        self.job_email=job_email
+        self.job_email_options=job_email_options
 
         try:
             if xnat_user == None:
