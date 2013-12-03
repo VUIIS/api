@@ -550,7 +550,6 @@ def download_AssessorType(Outputdirectory,projectName,subject,experiment,List_pr
         xnat = Interface(VUIISxnat_host, VUIISxnat_user, VUIISxnat_pwd)
         
         for assessor in list_assessors(xnat, projectName, subject, experiment):
-
             for proc_type in List_process_type:
                 if proc_type==assessor['label'].split('-x-')[-1]:
                     ASSESSOR=xnat.select('/project/'+projectName+'/subjects/'+subject+'/experiments/'+experiment+'/assessors/'+assessor['label'])
