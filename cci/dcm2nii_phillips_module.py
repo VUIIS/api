@@ -90,7 +90,7 @@ class dcm2nii_phillips_Module(ScanModule):
                                 SCAN.resource('NIFTI').file(os.path.basename(NII_file+'.gz')).put(NII_file+'.gz')
                                 
                                 #for DTI upload BVAL and BVEC:
-                                if 'dti' in SCAN.attrs.get('xnat:imageScanData/type').lower():
+                                if 'dti' in SCAN.attrs.get('xnat:imageScanData/type').lower() or 'dif' in SCAN.attrs.get('xnat:imageScanData/type').lower():
                                     BVAL_file=DICOM_filename[:-4]+'-x-bval.txt'
                                     BVEC_file=DICOM_filename[:-4]+'-x-bvec.txt'
                                     if SCAN.resource('BVAL').exists:
