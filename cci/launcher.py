@@ -287,7 +287,7 @@ class Launcher(object):
 
         return task_list
                                                 
-    def update(self, settings_filename, mod_time=False):        
+    def update(self, settings_filename, mod_time=None):        
         print('\n-------------- Full Update --------------')
         
         success = self.lock_full_update(settings_filename)
