@@ -2,7 +2,7 @@ from modules import ScanModule
 import os
 import subprocess as sb
 
-DEFAULT_DCM2NII='/gpfs21/scratch/mcr/'
+DEFAULT_DCM2NII='/gpfs21/scratch/mcr/mricron'
 DEFAULT_TPM_PATH='/tmp/dcm2nii_temp/'
 DEFAULT_MODULE_NAME='dcm2nii'
 DEFAULT_TEXT_REPORT='ERROR/WARNING for dcm2nii :\n'
@@ -31,6 +31,7 @@ class dcm2nii_Module(ScanModule):
         if Scan.resource('DICOM').exists():
             if not Scan.resource('NIFTI').exists():
                 if len(Scan.resource('DICOM').files().get()) > 0:
+                    print '      -downloading all DICOMs...'
                     num=1
                     for dicom_fname in Scan.resource('DICOM').files().get()[:]:
                         dicom_file = Scan.resource('DICOM').file(dicom_fname)
@@ -39,7 +40,7 @@ class dcm2nii_Module(ScanModule):
                         num = num + 1
                     
                     # check that the dicom are complete (all the slices present)
-                    f = open(self.directory+'/callCheckDICOM.m', "w")
+                    f = open(os.path.join(self.directory,'callCheckDICOM.m'), "w")
                     try:
                         lines=[ '% Matlab Script to check DICOM function\n',
                                 'in_dir=\''+str(self.directory)+'\';\n',
@@ -74,12 +75,16 @@ class dcm2nii_Module(ScanModule):
                     finally:
                         f.close()
                     #run it and check the output:
-                    call='matlab < '+self.directory+'/callCheckDICOM.m '
-                    output = sb.check_output(call.split())
-                    if 'ERROR' in output:
-                        send_an_email=1
-                        self.report('      -ERROR: missing or duplicates slices in DICOM for Subject/Experiment : '+subject+'/'+experiment+'/'+scan)
-                    
+                    print '      -checking all DICOMs...'
+                    call='matlab < '+os.path.join(self.directory,'callCheckDICOM.m')
+                    try:
+                        output = sb.check_output(call.split())
+                        if 'ERROR' in output:
+                            send_an_email=1
+                            self.report('        ERROR: missing or duplicates slices in DICOM for Subject/Experiment : '+subject+'/'+experiment+'/'+scan)
+                    except:
+                        print "        ERROR: checking DICOMs failed."
+                        
                     #remove the .m file:
                     os.remove(self.directory+'/callCheckDICOM.m')
                     
@@ -124,7 +129,6 @@ class dcm2nii_Module(ScanModule):
                     
                     #more than one NIFTI uploaded
                     if number_of_nifti>1:
-                        send_an_email
                         self.report('WARNING: more than one NIFTI upload for Subject/Experiment : '+subject+'/'+experiment+'/'+scan)
                         
                     #nothing upload

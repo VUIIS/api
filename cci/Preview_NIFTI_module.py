@@ -33,8 +33,8 @@ class Preview_NIFTI_Module(ScanModule):
                     if not dl:
                         print '      -ERROR: NIFTI file size is zero.'
                     else:
-                        smGif = os.path.splitext(os.path.basename(NIFTI_filename))[0] + "_sm.gif"
-                        lgGif = os.path.splitext(os.path.basename(NIFTI_filename))[0] + "_lg.gif"
+                        smGif = os.path.join(self.directory,os.path.splitext(os.path.basename(NIFTI_filename))[0] + "_sm.gif")
+                        lgGif = os.path.join(self.directory,os.path.splitext(os.path.basename(NIFTI_filename))[0] + "_lg.gif")
                         
                         #Matlab code to generate preview
                         f = open(self.directory+'/callpreview.m', "w")

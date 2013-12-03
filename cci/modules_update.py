@@ -11,14 +11,14 @@ if __name__ == '__main__':
     args = parse_args()
     settings_path = args.settings_path
 
-    print('INFO:running full update, Start Time:'+str(datetime.now()))
+    print('INFO:running modules update, Start Time:'+str(datetime.now()))
 
     # Load the settings file
     print('INFO:loading settings from:'+settings_path)
     settings = imp.load_source('settings', settings_path)
     settings_filename=os.path.splitext(os.path.basename(settings_path))[0]
 
-    # Run the full update
-    settings.myLauncher.update(settings_filename)
+    # Run the Modules:
+    settings.myLauncher.update_modules(settings_filename) 
 
-    print('INFO:finished full update, End Time: '+str(datetime.now()))
+    print('INFO:finished modules update, End Time: '+str(datetime.now()))
