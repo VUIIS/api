@@ -236,8 +236,8 @@ def list_assessors(intf, projectid, subjectid, experimentid):
         anew['project_id'] = projectid
         anew['project_label'] = projectid
         anew['subject_id'] = a['xnat:imagesessiondata/subject_id']
-        anew['session_id'] = a['xnat:imagesessiondata/id']
-        anew['session_label'] = a['xnat:imagesessiondata/label']
+        anew['session_id'] = a['session_ID']
+        anew['session_label'] = a['session_label']
         anew['procstatus'] = a['fs:fsdata/procstatus']
         anew['qcstatus'] = a['fs:fsdata/validation/status']
         anew['proctype'] = 'FreeSurfer'
@@ -260,8 +260,8 @@ def list_assessors(intf, projectid, subjectid, experimentid):
         anew['project_id'] = projectid
         anew['project_label'] = projectid
         anew['subject_id'] = a['xnat:imagesessiondata/subject_id']
-        anew['session_id'] = a['xnat:imagesessiondata/id']
-        anew['session_label'] = a['xnat:imagesessiondata/label']
+        anew['session_id'] = a['session_ID']
+        anew['session_label'] = a['session_label']
         anew['procstatus'] = a['proc:genprocdata/procstatus']
         anew['proctype'] = a['proc:genprocdata/proctype']
         anew['qcstatus'] = a['proc:genprocdata/validation/status']
