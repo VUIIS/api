@@ -72,7 +72,7 @@ def tracejob_info(jobid, jobdate):
   
 class PBS:  
     #constructor
-    def __init__(self,filename,outfile,cmds,walltime_str,mem_mb=2048,ppn=1,email=''):
+    def __init__(self,filename,outfile,cmds,walltime_str,mem_mb=2048,ppn=1,email='',email_options='bae'):
         self.filename=filename
         self.outfile=outfile
         self.cmds=cmds
@@ -90,7 +90,7 @@ class PBS:
         f.write('#!/bin/bash\n')
         if self.email != '':
             f.write('#PBS -M ' + self.email+'\n')
-            f.write('#PBS -m bae \n')
+            f.write('#PBS -m '+self.email_options+'\n')
         f.write('#PBS -l nodes=1:ppn='+str(self.ppn)+'\n')
         f.write('#PBS -l walltime='+str(self.walltime_str)+'\n')
         f.write('#PBS -l mem=' + str(self.mem_mb) + 'mb\n')

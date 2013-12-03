@@ -264,11 +264,11 @@ class Task(object):
        
         return jobstatus
             
-    def launch(self,jobdir,job_email=None):
+    def launch(self,jobdir,job_email=None,job_email_options='bae'):
         cmds = self.commands(jobdir)
         pbsfile = self.pbs_path()
         outlog = self.outlog_path()
-        pbs = PBS(pbsfile,outlog,cmds,self.processor.walltime_str,self.processor.memreq_mb,self.processor.ppn,job_email)
+        pbs = PBS(pbsfile,outlog,cmds,self.processor.walltime_str,self.processor.memreq_mb,self.processor.ppn,job_email,job_email_options)
         pbs.write()
         jobid = pbs.submit()
         
