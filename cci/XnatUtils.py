@@ -42,7 +42,7 @@ class SpiderProcessHandler:
         
     def add_pdf(self,filepath):
         #Check if it's a ps:
-        if os.path.splitext(filepath)[1].lower=='.ps':
+        if os.path.splitext(filepath)[1].lower()=='.ps':
             ps=os.path.basename(filepath)
             pdf_path=os.path.splitext(filepath)[0]+'.pdf'
             print '  -Converting '+ps+' file into a PDF '+pdf_path+' ...'
