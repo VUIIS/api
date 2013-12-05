@@ -79,6 +79,7 @@ class PBS:
         self.walltime_str=walltime_str
         self.mem_mb=mem_mb
         self.email=email
+        self.email_options=email_options
         self.ppn=ppn
 
     def write(self):
