@@ -43,7 +43,7 @@ class Module(object):
                 self.clean_directory()
     
     def getname(self):
-	return self.module_name
+        return self.module_name
  
     def clean_directory(self):
         files=os.listdir(self.directory)
