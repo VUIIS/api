@@ -12,7 +12,7 @@ import sys
 import Spiders
 from datetime import datetime
 from pyxnat import Interface
-from task import READY_TO_COMPLETE, COMPLETE
+from task import READY_TO_COMPLETE, COMPLETE, UPLOADING
 
 def parse_args():
     from optparse import OptionParser
@@ -146,6 +146,9 @@ def set_check_assessor_status(assessor_label_list,emailaddress):
                 assessor=experiment.assessor(assessor_label)
                 #existence :
                 if assessor.datatype() == 'fs:fsData':
+                    #set the status to Upload :
+                    assessor.attrs.set('fs:fsData/procstatus', UPLOADING)
+                    #add to the list:
                     new_assessor_list.append(assessor_label)
                 elif assessor.exists():
                     #check status :
@@ -157,14 +160,14 @@ def set_check_assessor_status(assessor_label_list,emailaddress):
                         send_an_email=1
                     else:
                         #set the status to Upload :
-                        assessor.attrs.set('proc:genProcData/procstatus','UPLOADING')
+                        assessor.attrs.set('proc:genProcData/procstatus', UPLOADING)
                         #add to the list:
                         new_assessor_list.append(assessor_label)
                 else:
                     #create the assessor and set the status 
                     assessor.create(assessors='proc:genProcData')
                     #Set attributes
-                    assessor.attrs.set('proc:genProcData/procstatus','UPLOADING') #Set to uploading files
+                    assessor.attrs.set('proc:genProcData/procstatus', UPLOADING) #Set to uploading files
                     assessor.attrs.set('proc:genProcData/proctype', Process_name)
                     now=datetime.now()
                     today=str(now.year)+'-'+str(now.month)+'-'+str(now.day)
@@ -384,7 +387,7 @@ def Upload_FreeSurfer(xnat,assessor_path,ProjectName,Subject,Experiment,assessor
     	print 'ERROR:cannot upload FreeSufer, unable to find XML file:'+assessor_path
     	return
     xml_path = assessor_path+'/XML/'+xml_files_list[0]
-    assessor.create(xml=xml_path)
+    assessor.create(xml=xml_path, allowDataDeletion=False)
     
     #UPLOAD files :                
     Assessor_Resource_List=os.listdir(assessor_path)    
