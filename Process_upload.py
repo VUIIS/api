@@ -471,7 +471,7 @@ if __name__ == '__main__':
     (options,args) = parse_args()
     emailaddress = options.emailaddress
     
-    print 'Time at the beginning of the Spider_Process_Upload: ', str(datetime.now()),'\n'
+    print 'Time at the beginning of the Process_Upload: ', str(datetime.now()),'\n'
 
     #Upload Directory for Spider_Process_Upload.py
     try:
@@ -495,9 +495,13 @@ if __name__ == '__main__':
         os.mkdir(UploadDir+'/PBS')    
     
     #check if this spider is still running for the former called by checking the flagfile Spider_Process_Upload_running.txt
-    if not os.path.exists(UploadDir+'/Spider_Process_Upload_running.txt'):
+    if not os.path.exists(UploadDir+'/Process_Upload_running.txt') and not os.path.exists(UploadDir+'/Spider_Process_Upload_running.txt'):
         #create the flag file showing that the spider is running 
-        open(UploadDir+'/Spider_Process_Upload_running.txt', 'w').close()
+        f=open(UploadDir+'/Process_Upload_running.txt', 'w')
+        today=datetime.now()
+        datestr="Date: "+str(today.year)+str(today.month)+str(today.day)+'_'+str(today.hour)+':'+str(today.minute)+':'+str(today.second)
+        f.write(datesrt)
+        f.close()
         
         try:
             #Start Uploading
@@ -567,7 +571,7 @@ if __name__ == '__main__':
         #Stop the process before the end or end of the script, remove the flagfile for the spider running 
         finally:
             #remove flagfile
-            os.remove(UploadDir+'/Spider_Process_Upload_running.txt')
+            os.remove(UploadDir+'/Process_Upload_running.txt')
             print '===================================================================\n'
     else:
         print 'WARNING: Upload already running.'
