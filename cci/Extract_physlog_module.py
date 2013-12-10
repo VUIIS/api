@@ -88,7 +88,7 @@ class Extract_physlog_Module(SessionModule):
                             self.clean_directory()
                                     
                     if error:
-                        self.record('ERROR: (not a proper zip) extract secondary files failed for '+projectName+'/'+subject+'/'+experiment+'/'+scan['ID'])
+                        self.report('ERROR: (not a proper zip) extract secondary files failed for '+projectName+'/'+subject+'/'+experiment+'/'+scan['ID'])
                         
             
             #create the flag resource on the experiment           
