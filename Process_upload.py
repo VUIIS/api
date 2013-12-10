@@ -127,7 +127,7 @@ def set_check_assessor_status(assessor_label_list,emailaddress):
     
     #connect to the experiment
     try:
-        print '  -Connecting to XNAT to set status at '+VUIISxnat_host
+        print ' -Connecting to XNAT to set status at '+VUIISxnat_host
         xnat = Interface(VUIISxnat_host, VUIISxnat_user, VUIISxnat_pwd)
         #Get the Project Name, the subject label, the experiment label and the assessor label from the file name :
         number_of_process=len(assessor_label_list)
@@ -501,7 +501,7 @@ if __name__ == '__main__':
         
         try:
             #Start Uploading
-            print '-------- Upload Directory from '+UploadDir+' --------'
+            print '-------- Upload Directory: '+UploadDir+' --------'
             ###VARIABLES###
             #Check if the folder is not empty
             UploadDirList=os.listdir(UploadDir)
