@@ -529,7 +529,7 @@ if __name__ == '__main__':
                         assessor_path=UploadDir+'/'+assessor_label
                         if os.path.isdir(assessor_path):
                             sys.stdout.flush()
-                            sys.stdout.write("    *Process: "+str(index+1)+"/"+str(number_of_processes)+' -- label: '+assessor_label)
+                            sys.stdout.write("    *Process: "+str(index+1)+"/"+str(number_of_processes)+' -- label: '+assessor_label+'\n')
                             #Get the Project Name, the subject label, the experiment label and the assessor label from the folder name :
                             labels=assessor_label.split('-x-')
                             ProjectName=labels[0]
