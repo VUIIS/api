@@ -143,6 +143,8 @@ class Task(object):
             self.assessor.attrs.set('fs:fsdata/walltimeused', walltime)
             
     def undo_processing(self):
+        from pyxnat.core.errors import DatabaseError
+
         self.set_qcstatus(JOB_PENDING)
         self.set_jobid(' ')
         self.set_memused(' ')
@@ -154,7 +156,7 @@ class Task(object):
                 print('\t  Removing '+out_resource.label())
                 try:
                     out_resource.delete()
-                except pyxnat.core.errors.DatabaseError:
+                except DatabaseError:
                     print('\t ERROR:deleting resource.')
                     pass
             
