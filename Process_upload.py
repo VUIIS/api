@@ -430,7 +430,7 @@ if __name__ == '__main__':
         f=open(UploadDir+'/Process_Upload_running.txt', 'w')
         today=datetime.now()
         datestr="Date: "+str(today.year)+str(today.month)+str(today.day)+'_'+str(today.hour)+':'+str(today.minute)+':'+str(today.second)
-        f.write(datestr)
+        f.write(datestr+'\n')
         f.close()
         
         try:
