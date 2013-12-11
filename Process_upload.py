@@ -103,97 +103,6 @@ def get_pbs_from_folder():
             
     return pbs_list
 
-def set_check_assessor_status(assessor_label_list,emailaddress):
-    #Set Uploading for the assessor who need to be upload (except if already complete)
-    
-    #for xnat connection
-    try:
-        # Environs
-        VUIISxnat_user = os.environ['XNAT_USER']
-        VUIISxnat_pwd = os.environ['XNAT_PASS']
-        VUIISxnat_host = os.environ['XNAT_HOST']
-        VUEMAIL_ADDR = os.environ['EMAIL_ADDR']
-        VUEMAIL_PWS = os.environ['EMAIL_PWS']
-    except KeyError as e:
-        print "You must set the environment variable %s" % str(e)
-        sys.exit(1) 
-        
-    #new assessor list which need to be upload :
-    new_assessor_list=list()
-    
-    #Email variables :
-    send_an_email=0;
-    TEXT='\nThe following assessor already exists and the Spider try to upload files on existing files :\n'
-    
-    #connect to the experiment
-    try:
-        print ' -Connecting to XNAT to set status at '+VUIISxnat_host
-        xnat = Interface(VUIISxnat_host, VUIISxnat_user, VUIISxnat_pwd)
-        #Get the Project Name, the subject label, the experiment label and the assessor label from the file name :
-        number_of_process=len(assessor_label_list)
-        for index,assessor_label in enumerate(assessor_label_list):
-            sys.stdout.flush()
-            sys.stdout.write("  * Changing status: "+str(index+1)+"/"+str(number_of_process)+'\r')
-            assessor_path=UploadDir+'/'+assessor_label
-            labels=assessor_label.split('-x-')
-            ProjectName=labels[0]
-            Subject=labels[1]
-            Experiment=labels[2]
-            #The Process name is the last labels : if it's at scan level, labels[3]=scan, Process_name=labels[4]
-            if len(labels)>4:
-                Process_name=labels[4]
-            else:
-                Process_name=labels[3]
-            
-            #Select the right experiment :
-            experiment = xnat.select('/project/'+ProjectName+'/subjects/'+Subject+'/experiments/'+Experiment)
-            if experiment.exists():
-                #ASSESSOR
-                assessor=experiment.assessor(assessor_label)
-                #existence :
-                if assessor.datatype() == 'fs:fsData':
-                    #set the status to Upload :
-                    assessor.attrs.set('fs:fsData/procstatus', UPLOADING)
-                    #add to the list:
-                    new_assessor_list.append(assessor_label)
-                elif assessor.exists():
-                    #check status :
-                    if assessor.attrs.get('proc:genProcData/procstatus') == COMPLETE or assessor.attrs.get('proc:genProcData/procstatus') == READY_TO_COMPLETE:
-                        if not os.path.exists(assessor_path+'/ALREADY_SEND_EMAIL.txt'):
-                            open(assessor_path+'/ALREADY_SEND_EMAIL.txt', 'w').close()
-                        print 'Data already exist.\n'
-                        TEXT+='\t- Project : '+ProjectName+' / Subject : '+Subject+' / Experiment : '+Experiment+' / Assessor label : '+ assessor_label+'\n'
-                        send_an_email=1
-                    else:
-                        #set the status to Upload :
-                        assessor.attrs.set('proc:genProcData/procstatus', UPLOADING)
-                        #add to the list:
-                        new_assessor_list.append(assessor_label)
-                else:
-                    #create the assessor and set the status 
-                    assessor.create(assessors='proc:genProcData')
-                    #Set attributes
-                    assessor.attrs.set('proc:genProcData/procstatus', UPLOADING) #Set to uploading files
-                    assessor.attrs.set('proc:genProcData/proctype', Process_name)
-                    now=datetime.now()
-                    today=str(now.year)+'-'+str(now.month)+'-'+str(now.day)
-                    assessor.attrs.set('proc:genProcData/date',today)
-                    #add to the list:
-                    new_assessor_list.append(assessor_label)
-            else:
-                print 'ERROR: The folder '+assessor_label+' has a wrong ProjectName or Subject label or Experiment label.'
-        
-    finally:
-        xnat.disconnect()
-        
-    #Sent an email
-    if send_an_email and emailaddress!='':
-        TEXT=TEXT+'\nYou should :\n\t-remove the assessor if you want to upload the data \n\t-set the status of the assessor to "uploading" \n\t-remove the data from the upload folder if you do not want to upload this data.\n'
-        SUBJECT='SPider_Process_Upload -> Data already on Xnat'
-        Spiders.sendMail(VUEMAIL_ADDR,VUEMAIL_PWS,emailaddress,SUBJECT,TEXT,'smtp.gmail.com') 
-                
-    return new_assessor_list
-
 def Uploading_Assessor(xnat,assessor_path,ProjectName,Subject,Experiment,assessor_label):
     #SNAPSHOTS :
     #Check if the SNAPSHOTS folder exists, if not create one from PDF if pdf exists :
@@ -245,10 +154,7 @@ def Uploading_Assessor(xnat,assessor_path,ProjectName,Subject,Experiment,assesso
                 for filename in Resource_files_list:
                     #if it's a folder, zip it and upload it
                     if os.path.isdir(filename):
-                        filenameZip=filename+'.zip'
-                        os.system('zip '+filenameZip+' '+Resource_path+'/'+filename+'/*')
-                        #upload
-                        r.put_zip(Resource_path+'/'+filenameZip,extract=True)
+                        upload_zip(filename,Resource_path+'/'+filename,r)
                     #if it's the preview snapshot
                     elif os.path.splitext(filename)[0]=='preview':
                         r.file(filename).put(Resource_path+'/'+filename,(filename.split('.')[1]).upper(),'THUMBNAIL')
@@ -262,17 +168,20 @@ def Uploading_Assessor(xnat,assessor_path,ProjectName,Subject,Experiment,assesso
             else:
                 #for each files in this folderl, Upload files in the resource :
                 Resource_files_list=os.listdir(Resource_path)
-                #for each folder=resource in the assessor directory 
-                for filename in Resource_files_list:
-                    #if it's a folder, zip it and upload it
-                    if os.path.isdir(filename):
-                        filenameZip=filename+'.zip'
-                        os.system('zip '+filenameZip+' '+Resource_path+'/'+filename+'/*')
-                        #upload
-                        r.put_zip(Resource_path+'/'+filenameZip,extract=True)
-                    else:
-                        #upload the file
-                        r.file(filename).put(Resource_path+'/'+filename)
+                #for each folder=resource in the assessor directory, more than 2 files, use the zip from XNAT
+                if len(Resource_files_list)>2:
+                    upload_zip(Resource,Resource_path,r)
+                #One or two file, let just upload them:
+                else:
+                    for filename in Resource_files_list:
+                        #if it's a folder, zip it and upload it
+                        if os.path.isdir(filename):
+                            upload_zip(filename,Resource_path+'/'+filename,r)
+                        elif filename.lower().endswith('.zip'):
+                            r.put_zip(Resource_path+'/'+filename, extract=True)
+                        else:
+                            #upload the file
+                            r.file(filename).put(Resource_path+'/'+filename)
                         
     #upload finish
     assessor.attrs.set('proc:genProcData/procstatus', READY_TO_COMPLETE)
@@ -446,23 +355,37 @@ def Upload_FreeSurfer(xnat,assessor_path,ProjectName,Subject,Experiment,assessor
             else:
                 #for each files in this folderl, Upload files in the resource :
                 Resource_files_list=os.listdir(Resource_path)
-                #for each folder=resource in the assessor directory 
-                for filename in Resource_files_list:
-                    #if it's a folder, zip it and upload it
-                    if os.path.isdir(filename):
-                        filenameZip=filename+'.zip'
-                        os.system('zip '+filenameZip+' '+Resource_path+'/'+filename+'/*')
-                        #upload
-                        r.put_zip(Resource_path+'/'+filenameZip,extract=True)
-                    elif filename.lower().endswith('.zip'):
-                    	r.put_zip(Resource_path+'/'+filename, extract=True)
-                    else:
-                        #upload the file
-                        r.file(filename).put(Resource_path+'/'+filename)
+                
+                #for each folder=resource in the assessor directory, more than 2 files, use the zip from XNAT
+                if len(Resource_files_list)>2:
+                    upload_zip(Resource,Resource_path,r)
+                #One or two file, let just upload them:
+                else:
+                    for filename in Resource_files_list:
+                        #if it's a folder, zip it and upload it
+                        if os.path.isdir(filename):
+                            upload_zip(filename,Resource_path+'/'+filename,r)
+                        elif filename.lower().endswith('.zip'):
+                        	r.put_zip(Resource_path+'/'+filename, extract=True)
+                        else:
+                            #upload the file
+                            r.file(filename).put(Resource_path+'/'+filename)
       
     #upload finish
     assessor.attrs.set('fs:fsdata/procstatus',READY_TO_COMPLETE)
     os.system('rm -r '+assessor_path)
+    
+def upload_zip(Resource,directory,resourceObj):
+    filenameZip=Resource+'.zip'
+    initDir=os.getcwd()
+    #Zip all the files in the directory
+    os.chdir(directory)
+    os.system('zip '+filenameZip+' *')
+    #upload
+    print '      *Uploading zip '+Resource+' ...'
+    resourceObj.put_zip(directory+'/'+filenameZip,extract=True)
+    #return to the initial directory:
+    os.chdir(initDir)
     
 #########################################################################################################################################################
 ###############################################################  MAIN FUNCTION ##########################################################################
@@ -473,6 +396,10 @@ if __name__ == '__main__':
     ################### Script for Upload FILES on Assessor on Xnat ######################
     (options,args) = parse_args()
     emailaddress = options.emailaddress
+    
+    #Email variables :
+    send_an_email=0;
+    TEXT='\nThe following assessor already exists and the Spider try to upload files on existing files :\n'
     
     print 'Time at the beginning of the Process_Upload: ', str(datetime.now()),'\n'
 
@@ -521,9 +448,7 @@ if __name__ == '__main__':
                 outlog_list=get_outlog_from_folder()
                 #Get the list of OUTLOG which need to be upload:
                 pbs_list=get_pbs_from_folder()
-                #Check the status of the assessor and set the assessor to upload if needed :
-                assessor_label_upload_list=set_check_assessor_status(assessor_label_in_dir_list,emailaddress)
-                
+
                 #Start the process to upload
                 try:
                     print 'INFO: Connecting to XNAT to start uploading processes at '+VUIISxnat_host
@@ -531,32 +456,79 @@ if __name__ == '__main__':
                     
                     ################# 1) Upload the assessor data ###############
                     #For each assessor label that need to be upload :
-                    number_of_processes=len(assessor_label_upload_list)
-                    for index,assessor_label in enumerate(assessor_label_upload_list):
+                    number_of_processes=len(assessor_label_in_dir_list)
+                    for index,assessor_label in enumerate(assessor_label_in_dir_list):
                         assessor_path=UploadDir+'/'+assessor_label
                         if os.path.isdir(assessor_path):
                             sys.stdout.flush()
-                            sys.stdout.write("    *Process: "+str(index+1)+"/"+str(number_of_processes)+' -- label: '+assessor_label+'\n')
+                            sys.stdout.write("    *Process: "+str(index+1)+"/"+str(number_of_processes)+' -- label: '+assessor_label+' / time: '+str(datetime.now())+'\n')
                             #Get the Project Name, the subject label, the experiment label and the assessor label from the folder name :
                             labels=assessor_label.split('-x-')
                             ProjectName=labels[0]
                             Subject=labels[1]
                             Experiment=labels[2]
-                            #The Process name is the last labels : if scan so labels[3]=scan, Process_name=labels[4]
-                            if len(labels)>4:
-                                Process_name=labels[4]
-                            else:
-                                Process_name=labels[3]
+                            #The Process name is the last labels
+                            Process_name=labels[-1]
                             
-                            ############## Upload Assessor ###############
-                            if Process_name=='FS':
-                                #freesurfer upload :
-                                Upload_FreeSurfer(xnat,assessor_path,ProjectName,Subject,Experiment,assessor_label)
+                            #check if subject/experiment exists on XNAT
+                            EXPERIMENT = xnat.select('/project/'+ProjectName+'/subjects/'+Subject+'/experiments/'+Experiment)
+                            
+                            if EXPERIMENT.exists():
+                                #ASSESSOR in the experiment
+                                ASSESSOR=EXPERIMENT.assessor(assessor_label)
+                                
+                                #existence :
+                                if not ASSESSOR.exists():
+                                    if 'FS' in Process_name:
+                                        #create the assessor and set the status 
+                                        ASSESSOR.create(assessors='fs:fsData')
+                                        #Set attributes
+                                        ASSESSOR.attrs.set('fs:fsData/procstatus','UPLOADING') #Set to uploading files
+                                        ASSESSOR.attrs.set('fs:fsData/validation/status','Job Pending')
+                                        ASSESSOR.attrs.set('fs:fsData/proctype', 'FreeSurfer')
+                                        now=datetime.now()
+                                        today=str(now.year)+'-'+str(now.month)+'-'+str(now.day)
+                                        ASSESSOR.attrs.set('fs:fsData/date',today)
+                                    else:
+                                        #create the assessor and set the status 
+                                        ASSESSOR.create(assessors='proc:genProcData')
+                                        #Set attributes
+                                        ASSESSOR.attrs.set('proc:genProcData/procstatus','UPLOADING') #Set to uploading files
+                                        ASSESSOR.attrs.set('proc:genProcData/validation/status','Job Pending')
+                                        ASSESSOR.attrs.set('proc:genProcData/proctype', Process_name)
+                                        now=datetime.now()
+                                        today=str(now.year)+'-'+str(now.month)+'-'+str(now.day)
+                                        ASSESSOR.attrs.set('proc:genProcData/date',today)
+                                
+                                else:
+                                    ################# FreeSurfer #################
+                                    if Process_name=='FS':      
+                                        if ASSESSOR.attrs.get('fs:fsData/procstatus')=='READY_TO_COMPLETE' or ASSESSOR.attrs.get('fs:fsData/procstatus')=='COMPLETE':
+                                            if not os.path.exists(assessor_path+'/ALREADY_SEND_EMAIL.txt'):
+                                                open(assessor_path+'/ALREADY_SEND_EMAIL.txt', 'w').close()
+                                            print '  -->Data already present on XNAT.\n'
+                                            TEXT+='\t- Project : '+ProjectName+' / Subject : '+Subject+' / Experiment : '+Experiment+' / Assessor label : '+ assessor_label+'\n'
+                                            send_an_email=1
+                                        else:
+                                            #set the status to Upload :
+                                            assessor.attrs.set('fs:fsData/procstatus', UPLOADING)
+                                            Upload_FreeSurfer(xnat,assessor_path,ProjectName,Subject,Experiment,assessor_label)
+                                    ################# Default Assessor #################
+                                    else:
+                                        if ASSESSOR.attrs.get('proc:genProcData/procstatus')=='READY_TO_COMPLETE' or ASSESSOR.attrs.get('proc:genProcData/procstatus')=='COMPLETE':
+                                            if not os.path.exists(assessor_path+'/ALREADY_SEND_EMAIL.txt'):
+                                                open(assessor_path+'/ALREADY_SEND_EMAIL.txt', 'w').close()
+                                            print 'Data already exist.\n'
+                                            TEXT+='\t- Project : '+ProjectName+' / Subject : '+Subject+' / Experiment : '+Experiment+' / Assessor label : '+ assessor_label+'\n'
+                                            send_an_email=1
+                                        else:
+                                            #set the status to Upload :
+                                            assessor.attrs.set('proc:genProcData/procstatus', UPLOADING)
+                                            Uploading_Assessor(xnat,assessor_path,ProjectName,Subject,Experiment,assessor_label)
+                                    
                             else:
-                                #Default upload:
-                                Uploading_Assessor(xnat,assessor_path,ProjectName,Subject,Experiment,assessor_label)
-                                
-                                
+                                print 'ERROR: The folder '+assessor_label+' has a wrong ProjectName or Subject label or Experiment label.'
+                      
                     ################# 2) Upload the Outlog files ###############
                     #For each file, upload it to the OUTLOG resource on the assessor
                     Uploading_OUTLOG(outlog_list,xnat)
@@ -567,7 +539,14 @@ if __name__ == '__main__':
                     
                     
                 #if fail, close the connection to xnat
-                finally:                                        
+                finally:
+                    #Sent an email
+                    if send_an_email and emailaddress!='':
+                        TEXT=TEXT+'\nYou should :\n\t-remove the assessor if you want to upload the data \n\t-set the status of the assessor to "uploading" \n\t-remove the data from the upload folder if you do not want to upload this data.\n'
+                        SUBJECT='SPider_Process_Upload -> Data already on Xnat'
+                        Spiders.sendMail(VUEMAIL_ADDR,VUEMAIL_PWS,emailaddress,SUBJECT,TEXT,'smtp.gmail.com')   
+                        
+                    #disconnect                                     
                     xnat.disconnect()
                     print 'INFO: Connection to Xnat closed'  
         
