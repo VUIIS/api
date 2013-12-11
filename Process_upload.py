@@ -511,7 +511,7 @@ if __name__ == '__main__':
                                             send_an_email=1
                                         else:
                                             #set the status to Upload :
-                                            assessor.attrs.set('fs:fsData/procstatus', UPLOADING)
+                                            ASSESSOR.attrs.set('fs:fsData/procstatus', UPLOADING)
                                             Upload_FreeSurfer(xnat,assessor_path,ProjectName,Subject,Experiment,assessor_label)
                                     ################# Default Assessor #################
                                     else:
@@ -523,7 +523,7 @@ if __name__ == '__main__':
                                             send_an_email=1
                                         else:
                                             #set the status to Upload :
-                                            assessor.attrs.set('proc:genProcData/procstatus', UPLOADING)
+                                            ASSESSOR.attrs.set('proc:genProcData/procstatus', UPLOADING)
                                             Uploading_Assessor(xnat,assessor_path,ProjectName,Subject,Experiment,assessor_label)
                                     
                             else:
