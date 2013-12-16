@@ -627,6 +627,39 @@ def download_all_resources(Resource,directory):
         
         if '.zip' in DLFileName:
             os.system('unzip -d '+Res_path+' '+DLFileName)
+            
+def upload_all_resources(Resource,directory):
+    print'----'
+    #for each files in this folderl, Upload files in the resource :
+    Resource_files_list=os.listdir(directory)
+    #for each folder=resource in the assessor directory, more than 2 files, use the zip from XNAT
+    if len(Resource_files_list)>2:
+        print '-->Uploading '+Resource.label()+' ...'
+        upload_zip(directory,Resource)
+    #One or two file, let just upload them:
+    else:
+        for filename in Resource_files_list:
+            print '-->Uploading '+Resource.label()+' / file: '+filename+'...'
+            #if it's a folder, zip it and upload it
+            if os.path.isdir(filename):
+                upload_zip(filename,directory+'/'+filename,r)
+            elif filename.lower().endswith('.zip'):
+                Resource.put_zip(directory+'/'+filename, extract=True)
+            else:
+                #upload the file
+                Resource.file(filename).put(directory+'/'+filename)
+    print'----'
+
+def upload_zip(Resource,directory):
+    filenameZip=Resource.label()+'.zip'
+    initDir=os.getcwd()
+    #Zip all the files in the directory
+    os.chdir(directory)
+    os.system('zip '+filenameZip+' *')
+    #upload
+    Resource.put_zip(directory+'/'+filenameZip,extract=True)
+    #return to the initial directory:
+    os.chdir(initDir)
 
 def clean_directory(folder_name):
     """remove all the files in the folder.
