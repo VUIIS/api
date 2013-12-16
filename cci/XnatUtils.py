@@ -633,7 +633,6 @@ def download_all_resources(Resource,directory):
         print'ERROR download_all_resources in XnatUtils: Folder '+directory+' does not exist.'
             
 def upload_all_resources(Resource,directory):
-    print'----'
     if os.path.exists(directory):
         if not Resource.exists():
             Resource.create()
@@ -641,12 +640,10 @@ def upload_all_resources(Resource,directory):
         Resource_files_list=os.listdir(directory)
         #for each folder=resource in the assessor directory, more than 2 files, use the zip from XNAT
         if len(Resource_files_list)>2:
-            print '-->Uploading '+Resource.label()+' ...'
             upload_zip(directory,Resource)
         #One or two file, let just upload them:
         else:
             for filename in Resource_files_list:
-                print '-->Uploading '+Resource.label()+' / file: '+filename+'...'
                 #if it's a folder, zip it and upload it
                 if os.path.isdir(filename):
                     upload_zip(filename,directory+'/'+filename,r)
@@ -657,7 +654,6 @@ def upload_all_resources(Resource,directory):
                     Resource.file(filename).put(directory+'/'+filename)
     else:
         print'ERROR upload_all_resources in XnatUtils: Folder '+directory+' does not exist.'
-    print'----'
 
 def upload_zip(Resource,directory):
     filenameZip=Resource.label()+'.zip'
