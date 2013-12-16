@@ -628,7 +628,7 @@ def download_all_resources(Resource,directory):
             Resource.file(fname).get(DLFileName)
             
             if '.zip' in DLFileName:
-                os.system('unzip -d '+Res_path+' '+DLFileName)
+                os.system('unzip -d '+directory+' '+DLFileName)
     else:
         print'ERROR download_all_resources in XnatUtils: Folder '+directory+' does not exist.'
             
