@@ -635,6 +635,8 @@ def download_all_resources(Resource,directory):
 def upload_all_resources(Resource,directory):
     print'----'
     if os.path.exists(directory):
+        if not Resource.exists():
+            Resource.create()
         #for each files in this folderl, Upload files in the resource :
         Resource_files_list=os.listdir(directory)
         #for each folder=resource in the assessor directory, more than 2 files, use the zip from XNAT
