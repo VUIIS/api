@@ -599,55 +599,62 @@ def dl_good_resources_assessor(Assessor,resource_list,Outputdirectory,all_resour
                 print 'ERROR: Download failed, the size of file for the resource is zero.'
                             
 def download_biggest_resources(Resource,directory,filename='0'):
-    number=0
-    Bigger_file_size=0
-    for index,fname in enumerate(Resource.files().get()[:]):
-        size=int(Resource.file(fname).size())
-        if Bigger_file_size<size:
-            Bigger_file_size=size
-            number=index
-            
-    if Bigger_file_size==0:
-        return 0,'nan'
-    else:
-        Input_res_label_fname = Resource.files().get()[number]
-        if filename=='0':
-            DLFileName = os.path.join(directory,Input_res_label_fname)
+    if os.path.exists(directory):
+        number=0
+        Bigger_file_size=0
+        for index,fname in enumerate(Resource.files().get()[:]):
+            size=int(Resource.file(fname).size())
+            if Bigger_file_size<size:
+                Bigger_file_size=size
+                number=index
+                
+        if Bigger_file_size==0:
+            return 0,'nan'
         else:
-            DLFileName = os.path.join(directory,filename)
-        Resource.file(Input_res_label_fname).get(DLFileName)
-        return 1,DLFileName
+            Input_res_label_fname = Resource.files().get()[number]
+            if filename=='0':
+                DLFileName = os.path.join(directory,Input_res_label_fname)
+            else:
+                DLFileName = os.path.join(directory,filename)
+            Resource.file(Input_res_label_fname).get(DLFileName)
+            return 1,DLFileName
+    else:
+        print'ERROR download_biggest_resources in XnatUtils: Folder '+directory+' does not exist.'
     
 def download_all_resources(Resource,directory):
-    Res_path=os.path.join(directory,Resource.label())
-    os.mkdir(Res_path)
-    for fname in Resource.files().get()[:]:
-        DLFileName = os.path.join(Res_path,fname)
-        Resource.file(fname).get(DLFileName)
-        
-        if '.zip' in DLFileName:
-            os.system('unzip -d '+Res_path+' '+DLFileName)
+    if os.path.exists(directory):
+        for fname in Resource.files().get()[:]:
+            DLFileName = os.path.join(directory,fname)
+            Resource.file(fname).get(DLFileName)
+            
+            if '.zip' in DLFileName:
+                os.system('unzip -d '+Res_path+' '+DLFileName)
+    else:
+        print'ERROR download_all_resources in XnatUtils: Folder '+directory+' does not exist.'
             
 def upload_all_resources(Resource,directory):
     print'----'
-    #for each files in this folderl, Upload files in the resource :
-    Resource_files_list=os.listdir(directory)
-    #for each folder=resource in the assessor directory, more than 2 files, use the zip from XNAT
-    if len(Resource_files_list)>2:
-        print '-->Uploading '+Resource.label()+' ...'
-        upload_zip(directory,Resource)
-    #One or two file, let just upload them:
+    if os.path.exists(directory):
+        #for each files in this folderl, Upload files in the resource :
+        Resource_files_list=os.listdir(directory)
+        #for each folder=resource in the assessor directory, more than 2 files, use the zip from XNAT
+        if len(Resource_files_list)>2:
+            print '-->Uploading '+Resource.label()+' ...'
+            upload_zip(directory,Resource)
+        #One or two file, let just upload them:
+        else:
+            for filename in Resource_files_list:
+                print '-->Uploading '+Resource.label()+' / file: '+filename+'...'
+                #if it's a folder, zip it and upload it
+                if os.path.isdir(filename):
+                    upload_zip(filename,directory+'/'+filename,r)
+                elif filename.lower().endswith('.zip'):
+                    Resource.put_zip(directory+'/'+filename, extract=True)
+                else:
+                    #upload the file
+                    Resource.file(filename).put(directory+'/'+filename)
     else:
-        for filename in Resource_files_list:
-            print '-->Uploading '+Resource.label()+' / file: '+filename+'...'
-            #if it's a folder, zip it and upload it
-            if os.path.isdir(filename):
-                upload_zip(filename,directory+'/'+filename,r)
-            elif filename.lower().endswith('.zip'):
-                Resource.put_zip(directory+'/'+filename, extract=True)
-            else:
-                #upload the file
-                Resource.file(filename).put(directory+'/'+filename)
+        print'ERROR upload_all_resources in XnatUtils: Folder '+directory+' does not exist.'
     print'----'
 
 def upload_zip(Resource,directory):
