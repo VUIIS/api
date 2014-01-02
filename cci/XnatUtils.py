@@ -142,8 +142,9 @@ def list_subjects(intf, projectid=None):
         post_uri = '/REST/projects/'+projectid+'/subjects'
     else:
         post_uri = '/REST/subjects'
-
-    post_uri += '?columns=ID,project,label,URI,last_modified'
+        
+    post_uri += '?columns=ID,project,label,URI,last_modified,src'
+    
     subject_list = intf._get_json(post_uri)
     
     # Override the project returned to be the one we queried
@@ -642,4 +643,92 @@ def clean_directory(folder_name):
             shutil.rmtree(folder_name+'/'+f)
     return 0 
 
- 
+def download_resource_assessor(directory,xnat,project,subject,experiment,assessor_label,resources_list,quiet):
+    """ Download the resources from the list for the assessor given in the argument (if resource_list[0]='all' -> download all)"""
+    
+    if not quiet:
+        print '    +Process: '+assessor_label
+        
+    assessor=xnat.select('/project/'+project+'/subjects/'+subject+'/experiments/'+experiment+'/assessors/'+assessor_label)
+    if not assessor.exists():
+        print '      !!WARNING: No assessor with the ID selected.'
+        return
+                
+    if 'fMRIQA' in assessor_label:
+        labels=assessor_label.split('-x-')
+        SCAN=xnat.select('/project/'+project+'/subjects/'+subject+'/experiments/'+experiment+'/scans/'+labels[3])
+        SD=SCAN.attrs.get('series_description')
+        SD=SD.replace('/','_')
+        SD=SD.replace(" ", "")
+            
+        if SD!='':
+            directory=directory+'-x-'+SD
+        
+    if not os.path.exists(directory):
+        os.mkdir(directory)
+    
+    #all resources
+    if resources_list[0]=='all':
+        post_uri_resource = '/REST/projects/'+project+'/subjects/'+subject+'/experiments/'+experiment+'/assessors/'+assessor_label+'/out/resources'
+        resources_list = xnat._get_json(post_uri_resource)
+        for resource in resources_list:
+            Resource=xnat.select('/project/'+project+'/subjects/'+subject+'/experiments/'+experiment+'/assessors/'+assessor_label+'/out/resources/'+resource['label'])
+            if Resource.exists():
+                if not quiet:
+                    print '      *download resource '+resource['label']
+                
+                assessor_real_type=assessor_label.split('-x-')[-1]
+                if 'FS' in assessor_real_type:
+                    #make a directory for each of the resource
+                    Res_path=directory+'/'+resource['label']
+                    if not os.path.exists(Res_path):
+                        os.mkdir(Res_path)
+                    Resource.get(Res_path, extract=False)
+                else:
+                    if len(Resource.files().get()) > 0:
+                        #make a directory for each of the resource
+                        Res_path=directory+'/'+resource['label']
+                        if not os.path.exists(Res_path):
+                            os.mkdir(Res_path)
+                        
+                        for fname in Resource.files().get()[:]:
+                            Resfile = Resource.file(fname)
+                            local_fname = os.path.join(Res_path, fname)
+                            Resfile.get(local_fname)
+                    else:
+                        print "\t    *ERROR : The size of the resource is 0."
+            
+    #resources in the options
+    else:
+        for resource in resources_list:
+            Resource=xnat.select('/project/'+project+'/subjects/'+subject+'/experiments/'+experiment+'/assessors/'+assessor_label+'/out/resources/'+resource)
+            if Resource.exists():
+                if not quiet:
+                    print '      *download resource '+resource
+                
+                assessor_real_type=assessor_label.split('-x-')[-1]
+                if 'FS' in assessor_real_type:
+                    #make a directory for each of the resource
+                    Res_path=directory+'/'+resource
+                    if not os.path.exists(Res_path):
+                        os.mkdir(Res_path)
+                    
+                    Resource.get(Res_path, extract=False)
+                else:
+                    if len(Resource.files().get()) > 0:
+                        #make a directory for each of the resource
+                        Res_path=directory+'/'+resource
+                        if not os.path.exists(Res_path):
+                            os.mkdir(Res_path)
+                        
+                        for fname in Resource.files().get()[:]:
+                            Resfile = Resource.file(fname)
+                            local_fname = os.path.join(Res_path, fname)
+                            Resfile.get(local_fname)
+                    else:
+                        print "      !!ERROR : The size of the resource is 0." 
+            else:
+                print '      !!WARNING : no resource '+resource+' for this assessor.'
+    
+    
+    print'\n'
