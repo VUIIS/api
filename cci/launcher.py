@@ -15,13 +15,16 @@ import XnatUtils
 import task
 import cluster
 from task import Task
-from datetime import datetime
+from datetime import datetime, timedelta
 
 DEFAULT_QUEUE_LIMIT = 300
 DEFAULT_ROOT_JOB_DIR = '/tmp'
 FULL_UPDATE_LOCK_FILE  = 'FULL_UPDATE_RUNNING.txt'
 QUICK_UPDATE_LOCK_FILE  = 'QUICK_UPDATE_RUNNING.txt'
 MODULES_LOCK_FILE='MODULES_RUNNING.txt'
+UPDATE_FIELD = 'src'
+UPDATE_FORMAT = "%Y-%m-%d %H:%M:%S"
+UPDATE_PREFIX = 'updated--'
 
 #TODO: add sort options
 
@@ -108,7 +111,7 @@ class Launcher(object):
             xnat.disconnect()
             print('Connection to XNAT closed')
             
-    def update_modules(self,settings_filename,mod_time=None):
+    def update_modules(self,settings_filename,mod_time=None,check_mod=False):
         try:
             print('\n-------------- Run Modules --------------')
             print('Connecting to XNAT at '+self.xnat_host)
@@ -129,7 +132,7 @@ class Launcher(object):
                 self.module_prerun(project)
                 
                 #run
-                self.module_run(xnat,project,mod_time)
+                self.module_run(xnat,project,mod_time,check_mod)
                 
                 #after run
                 self.module_afterrun(xnat,project)
@@ -144,7 +147,7 @@ class Launcher(object):
         for mod in self.project_modules_dict[projectID]:
             mod.prerun()
             
-    def module_run(self,xnat,projectID, mod_time=None):
+    def module_run(self,xnat,projectID, mod_time=None, check_mod=False):
         #get the different list:
         exp_mod_list, scan_mod_list = modules.modules_by_type(self.project_modules_dict[projectID])  
         
@@ -155,7 +158,17 @@ class Launcher(object):
                 if last_mod < mod_time:
                     print(' +Subject:'+subject['label']+', skipping subject, not modified')
                     continue
-            
+
+            if check_mod:
+                last_mod = datetime.strptime(subject['last_modified'][0:19], '%Y-%m-%d %H:%M:%S')
+                last_up = self.get_subj_lastupdate(subject)
+
+                if last_up != None and last_mod < last_up:
+                    print(' +Subject:'+subject['label']+', skipping subject, not modified,last_mod='+str(last_mod)+',last_up='+str(last_up))
+                    continue
+                            
+            self.set_subj_lastupdate(XnatUtils.get_full_object(xnat, subject))
+
             for experiment in XnatUtils.list_experiments(xnat, projectID, subject['ID']):
                 #experiment Modules:
                 print ' +Subject: '+subject['label']+' / Session: '+experiment['label']
@@ -264,7 +277,7 @@ class Launcher(object):
                     # TODO: change status???
                     print('ERROR:failed to launch job')
         
-    def get_desired_tasks(self, xnat, mod_time=None):
+    def get_desired_tasks(self, xnat, mod_time=None, check_mod=False):
         task_list = []
         project_list = list(self.project_process_dict.keys())
   
@@ -272,22 +285,27 @@ class Launcher(object):
         for projectid in project_list:  
             print('===== PROJECT:'+projectid+' =====')          
             # Get lists of processors for this project
-            exp_proc_list, scan_proc_list = processors.processors_by_type(self.project_process_dict[projectid])        
- 
-            # iterate experiments
-            for exp_dict in XnatUtils.list_experiments(xnat, projectid):
-                if mod_time != None:
-                    last_mod = datetime.strptime(exp_dict['xnat:subjectdata/meta/last_modified'][0:19],"%Y-%m-%d %H:%M:%S")
-                    if last_mod < mod_time:
-                        print('    SESS:'+exp_dict['label']+', skipping session, not modified')   
+            exp_proc_list, scan_proc_list = processors.processors_by_type(self.project_process_dict[projectid])   
+            
+            for subject in XnatUtils.list_subjects(xnat, projectid):    
+                if check_mod:
+                    last_mod = datetime.strptime(subject['last_modified'][0:19], '%Y-%m-%d %H:%M:%S')
+                    last_up = self.get_subj_lastupdate(subject)
+                                        
+                    if last_up != None and last_mod < last_up:
+                        print(' +Subject:'+subject['label']+', skipping subject, not modified,last_mod='+str(last_mod)+',last_up='+str(last_up))
                         continue
+                                   
+                self.set_subj_lastupdate(XnatUtils.get_full_object(xnat, subject))
                 
-                print('    SESS:'+exp_dict['label'])   
-                task_list.extend(self.get_desired_tasks_session(xnat, exp_dict, exp_proc_list, scan_proc_list))
+                # iterate experiments
+                for exp_dict in XnatUtils.list_experiments(xnat, projectid, subject['ID']):
+                    print('    SESS:'+exp_dict['label'])   
+                    task_list.extend(self.get_desired_tasks_session(xnat, exp_dict, exp_proc_list, scan_proc_list))
 
         return task_list
                                                 
-    def update(self, settings_filename, mod_time=None):        
+    def update(self, settings_filename, mod_time=None, check_mod=False):        
         print('\n-------------- Full Update --------------')
         
         success = self.lock_full_update(settings_filename)
@@ -300,7 +318,7 @@ class Launcher(object):
             xnat = Interface(self.xnat_host, self.xnat_user, self.xnat_pass)
             
             print('Getting task list...')
-            task_list = self.get_desired_tasks(xnat, mod_time)
+            task_list = self.get_desired_tasks(xnat, mod_time, check_mod)
             
             import datetime
             print('INFO:finished building list of tasks, now updating, Time='+str(datetime.datetime.now()))
@@ -385,4 +403,15 @@ class Launcher(object):
         
         if os.path.exists(lock_file):
             os.remove(lock_file)
-
+            
+    def get_subj_lastupdate(self, subj):
+        update_time = subj[UPDATE_FIELD][len(UPDATE_PREFIX):]
+        if update_time == '':
+            return None
+        else:
+            return datetime.strptime(update_time, UPDATE_FORMAT)
+                        
+    def set_subj_lastupdate(self, subject):
+        # We set update to one minute into the future since setting update field will change last modified time
+        now = (datetime.now() + timedelta(minutes=1)).strftime(UPDATE_FORMAT)
+        subject.attrs.set(UPDATE_FIELD, UPDATE_PREFIX+now)
