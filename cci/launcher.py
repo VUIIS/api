@@ -111,7 +111,7 @@ class Launcher(object):
             xnat.disconnect()
             print('Connection to XNAT closed')
             
-    def update_modules(self,settings_filename,mod_time=None):
+    def update_modules(self,settings_filename,mod_time=None,check_mod=False):
         try:
             print('\n-------------- Run Modules --------------')
             print('Connecting to XNAT at '+self.xnat_host)
@@ -132,7 +132,7 @@ class Launcher(object):
                 self.module_prerun(project)
                 
                 #run
-                self.module_run(xnat,project,mod_time)
+                self.module_run(xnat,project,mod_time,check_mod)
                 
                 #after run
                 self.module_afterrun(xnat,project)
@@ -167,8 +167,8 @@ class Launcher(object):
                     print(' +Subject:'+subject['label']+', skipping subject, not modified,last_mod='+str(last_mod)+',last_up='+str(last_up))
                     continue
                             
-            set_subj_lastupdate(subject)
-            
+            self.set_subj_lastupdate(XnatUtils.get_full_object(xnat, subject))
+
             for experiment in XnatUtils.list_experiments(xnat, projectID, subject['ID']):
                 #experiment Modules:
                 print ' +Subject: '+subject['label']+' / Session: '+experiment['label']

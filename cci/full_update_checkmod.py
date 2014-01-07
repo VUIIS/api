@@ -17,8 +17,11 @@ if __name__ == '__main__':
     print('INFO:loading settings from:'+settings_path)
     settings = imp.load_source('settings', settings_path)
     settings_filename=os.path.splitext(os.path.basename(settings_path))[0]
+    
+    # Modules
+    settings.myLauncher.update_modules(settings_filename, check_mod=True) 
 
-    # Run the full update
+    # Processors
     settings.myLauncher.update(settings_filename, check_mod=True)
 
     print('INFO:finished full update, End Time: '+str(datetime.now()))
