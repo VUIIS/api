@@ -207,7 +207,11 @@ def Uploading_OUTLOG(outlog_list,xnat):
             if assessor.exists():
                 r=assessor.out_resource('OUTLOG')
                 #if the resource exist, don't upload it
-                procstatus = assessor.attrs.get('proc:genProcData/procstatus')
+                if assessor_label.split('-x-')[-1]=='FS':
+                    procstatus = assessor.attrs.get('fs:fsData/procstatus')
+                else:
+                    procstatus = assessor.attrs.get('proc:genProcData/procstatus')
+                    
                 if r.exists() and (procstatus == COMPLETE or procstatus == READY_TO_COMPLETE):
                     print 'WARNING : the OUTLOG resource already exists for the assessor '+assessor_label
                     print 'Copying the outlog file in the assessor folder if exists or in trash if not.'
