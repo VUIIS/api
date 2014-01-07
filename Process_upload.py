@@ -483,7 +483,7 @@ if __name__ == '__main__':
                                 
                                 #existence :
                                 if not ASSESSOR.exists():
-                                    if 'FS' in Process_name:
+                                    if Process_name=='FS':
                                         #create the assessor and set the status 
                                         ASSESSOR.create(assessors='fs:fsData')
                                         #Set attributes
