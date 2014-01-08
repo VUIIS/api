@@ -19,7 +19,9 @@ class Preview_NIFTI_Module(ScanModule):
         self.make_dir()    
         
     def afterrun(self,xnat,project):
-        pass
+        #clean the directory created     
+        self.clean_directory()
+        os.remove(self.directory)
                 
     def run(self,xnat,projectName,subject,experiment,scan):
         Scan = xnat.select('/project/'+projectName+'/subject/'+subject+'/experiment/'+experiment+'/scan/'+scan)

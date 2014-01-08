@@ -25,6 +25,10 @@ class dcm2nii_Module(ScanModule):
                 self.sendReport(EMAIL_ADDR,EMAIL_PWS,self.email,'**ERROR/WARNING for '+self.module_name+'**','smtp.gmail.com')
             except KeyError as e:
                 print "You must set the environment variable %s for next time to receive the report." % str(e)
+        
+        #clean the directory created     
+        self.clean_directory()
+        os.remove(self.directory)
                 
     def run(self,xnat,projectName,subject,experiment,scan):
         Scan = xnat.select('/project/'+projectName+'/subject/'+subject+'/experiment/'+experiment+'/scan/'+scan)

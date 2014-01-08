@@ -24,6 +24,10 @@ class Extract_physlog_Module(SessionModule):
                 self.sendReport(EMAIL_ADDR,EMAIL_PWS,self.email,'**ERROR/WARNING for '+self.module_name+'**','smtp.gmail.com')
             except KeyError as e:
                 print "You must set the environment variable %s for next time to receive the report." % str(e)
+        
+        #clean the directory created     
+        self.clean_directory()
+        os.remove(self.directory)
                     
     def run(self,xnat,projectName,subject,experiment):
         EXPERIMENT=xnat.select('/projects/'+projectName+'/subjects/'+subject+'/experiments/'+experiment)
