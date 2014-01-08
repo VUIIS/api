@@ -28,7 +28,7 @@ class dcm2nii_Module(ScanModule):
         
         #clean the directory created     
         self.clean_directory()
-        os.remove(self.directory)
+        os.rmdir(self.directory)
                 
     def run(self,xnat,projectName,subject,experiment,scan):
         Scan = xnat.select('/project/'+projectName+'/subject/'+subject+'/experiment/'+experiment+'/scan/'+scan)

@@ -27,7 +27,7 @@ class Extract_physlog_Module(SessionModule):
         
         #clean the directory created     
         self.clean_directory()
-        os.remove(self.directory)
+        os.rmdir(self.directory)
                     
     def run(self,xnat,projectName,subject,experiment):
         EXPERIMENT=xnat.select('/projects/'+projectName+'/subjects/'+subject+'/experiments/'+experiment)
