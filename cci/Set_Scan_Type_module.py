@@ -16,7 +16,7 @@ class Set_Scan_Type_Module(ScanModule):
         self.old_scan_type_list=list()
         self.new_scan_type_list=list()
     
-    def prerun(self):
+    def prerun(self,settings_filename=''):
         #read text file
         if os.path.exists(self.scantype_file):
             for line in fileinput.input(self.scantype_file):

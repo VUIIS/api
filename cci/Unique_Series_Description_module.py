@@ -11,7 +11,7 @@ class Unique_Series_Description_Module(SessionModule):
     def __init__(self,module_name=DEFAULT_MODULE_NAME,directory=DEFAULT_TPM_PATH,email=DEFAULT_EMAIL,Text_report=DEFAULT_TEXT_REPORT):
         super(Unique_Series_Description_Module, self).__init__(module_name,directory,email,Text_report=DEFAULT_TEXT_REPORT)
         
-    def prerun(self):
+    def prerun(self,settings_filename=''):
         pass
     
     def afterrun(self,xnat,project):
