@@ -12,9 +12,9 @@ class Extract_physlog_Module(SessionModule):
     def __init__(self,module_name=DEFAULT_MODULE_NAME,directory=DEFAULT_TPM_PATH,email=DEFAULT_EMAIL,Text_report=DEFAULT_TEXT_REPORT):
         super(Extract_physlog_Module, self).__init__(module_name,directory,email,Text_report=DEFAULT_TEXT_REPORT)
     
-    def prerun(self):
+    def prerun(self,settings_filename=''):
         #make directory
-        self.make_dir()
+        self.make_dir(settings_filename)
     
     def afterrun(self,xnat,project):
         if self.email!='nan' and self.send_an_email:
@@ -25,9 +25,11 @@ class Extract_physlog_Module(SessionModule):
             except KeyError as e:
                 print "You must set the environment variable %s for next time to receive the report." % str(e)
         
-        #clean the directory created     
-        self.clean_directory()
-        os.rmdir(self.directory)
+        #clean the directory created
+        try:   
+            os.rmdir(self.directory)
+        except:
+            print'WARNING: '+self.directory+' not empty. Could not delete it.'
                     
     def run(self,xnat,projectName,subject,experiment):
         EXPERIMENT=xnat.select('/projects/'+projectName+'/subjects/'+subject+'/experiments/'+experiment)

@@ -129,7 +129,7 @@ class Launcher(object):
             for project in project_list:
                 print'\n=========== project: '+project+'==========='
                 #prerun
-                self.module_prerun(project)
+                self.module_prerun(project,settings_filename)
                 
                 #run
                 self.module_run(xnat,project,mod_time,check_mod)
@@ -142,10 +142,10 @@ class Launcher(object):
             xnat.disconnect()
             print('Connection to XNAT closed')
                         
-    def module_prerun(self,projectID):    
+    def module_prerun(self,projectID,settings_filename=''):    
         # for all of the module
         for mod in self.project_modules_dict[projectID]:
-            mod.prerun()
+            mod.prerun(settings_filename)
             
     def module_run(self,xnat,projectID, mod_time=None, check_mod=False):
         #get the different list:

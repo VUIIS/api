@@ -29,7 +29,11 @@ class Module(object):
     def get_report(self):
         return self.Text_report
     
-    def make_dir(self):
+    def make_dir(self,suffix=''):
+        #add the suffix if one to the directory:
+        if suffix:
+            self.directory=self.directory.rstrip('/')+'_'+suffix
+            
         #Check if the directory exists
         if not os.path.exists(self.directory):
             os.mkdir(self.directory)
