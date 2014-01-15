@@ -32,7 +32,8 @@ class Module(object):
     def make_dir(self,suffix=''):
         #add the suffix if one to the directory:
         if suffix:
-            self.directory=self.directory.rstrip('/')+'_'+suffix
+            if not suffix in self.directory:
+                self.directory=self.directory.rstrip('/')+'_'+suffix
             
         #Check if the directory exists
         if not os.path.exists(self.directory):
