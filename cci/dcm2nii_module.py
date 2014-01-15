@@ -13,9 +13,12 @@ class dcm2nii_Module(ScanModule):
         super(dcm2nii_Module, self).__init__(module_name,directory,email,Text_report=DEFAULT_TEXT_REPORT)
         self.dcm2niipath=dcm2niipath
     
-    def prerun(self,settings_filename=''):
+    def prerun(self,settings_filename='',projectname=''):
         #make directory
-        self.make_dir(settings_filename)
+        if settings_filename and projectname:
+            self.make_dir(settings_filename+'_'+projectname)
+        else:
+            self.make_dir()
     
     def afterrun(self,xnat,project):
         if self.email!='nan' and self.send_an_email:

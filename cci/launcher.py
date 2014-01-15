@@ -145,7 +145,7 @@ class Launcher(object):
     def module_prerun(self,projectID,settings_filename=''):    
         # for all of the module
         for mod in self.project_modules_dict[projectID]:
-            mod.prerun(settings_filename)
+            mod.prerun(settings_filename,projectID)
             
     def module_run(self,xnat,projectID, mod_time=None, check_mod=False):
         #get the different list:

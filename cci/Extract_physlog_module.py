@@ -12,9 +12,12 @@ class Extract_physlog_Module(SessionModule):
     def __init__(self,module_name=DEFAULT_MODULE_NAME,directory=DEFAULT_TPM_PATH,email=DEFAULT_EMAIL,Text_report=DEFAULT_TEXT_REPORT):
         super(Extract_physlog_Module, self).__init__(module_name,directory,email,Text_report=DEFAULT_TEXT_REPORT)
     
-    def prerun(self,settings_filename=''):
+    def prerun(self,settings_filename='',projectname=''):
         #make directory
-        self.make_dir(settings_filename)
+        if settings_filename and projectname:
+            self.make_dir(settings_filename+'_'+projectname)
+        else:
+            self.make_dir()
     
     def afterrun(self,xnat,project):
         if self.email!='nan' and self.send_an_email:

@@ -38,13 +38,16 @@ class Module(object):
         if not os.path.exists(self.directory):
             os.mkdir(self.directory)
         else:
-            today=datetime.now()
-            self.directory=os.path.join(self.directory,self.module_name+'_tmp_'+str(today.year)+'_'+str(today.month)+'_'+str(today.day)+'_'+str(today.hour)+'_'+str(today.minute)+'_'+str(today.second))
-	    
-            if not os.path.exists(self.directory):
-                os.mkdir(self.directory)
-            else:
+            if suffix:
                 self.clean_directory()
+            else:
+                today=datetime.now()
+                self.directory=os.path.join(self.directory,self.module_name+'_tmp_'+str(today.year)+'_'+str(today.month)+'_'+str(today.day)+'_'+str(today.hour)+'_'+str(today.minute)+'_'+str(today.second))
+    	    
+                if not os.path.exists(self.directory):
+                    os.mkdir(self.directory)
+                else:
+                    self.clean_directory()
     
     def getname(self):
         return self.module_name

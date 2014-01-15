@@ -14,9 +14,12 @@ class Preview_NIFTI_Module(ScanModule):
         self.masimatlabpath=masimatlabpath
         self.resourcename=resourcename
     
-    def prerun(self,settings_filename=''):
+    def prerun(self,settings_filename='',projectname=''):
         #make directory
-        self.make_dir(settings_filename)
+        if settings_filename and projectname:
+            self.make_dir(settings_filename+'_'+projectname)
+        else:
+            self.make_dir()
     
     def afterrun(self,xnat,project):        
         #clean the directory created
