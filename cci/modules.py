@@ -39,7 +39,7 @@ class Module(object):
         if not os.path.exists(self.directory):
             os.mkdir(self.directory)
         else:
-            if suffix:
+            if not suffix:
                 self.clean_directory()
             else:
                 today=datetime.now()
