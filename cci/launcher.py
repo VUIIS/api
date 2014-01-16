@@ -112,15 +112,16 @@ class Launcher(object):
             print('Connection to XNAT closed')
             
     def update_modules(self,settings_filename,mod_time=None,check_mod=False):
+        print('\n-------------- Run Modules --------------')
+        
+        success = self.lock_setup_inputs(settings_filename)
+        if not success:
+            print('ERROR:failed to get lock on module update')
+            exit(1)
+        
         try:
-            print('\n-------------- Run Modules --------------')
             print('Connecting to XNAT at '+self.xnat_host)
             xnat = Interface(self.xnat_host, self.xnat_user, self.xnat_pass)
-         
-            success = self.lock_setup_inputs(settings_filename)
-            if not success:
-                print('ERROR:failed to get lock on full update')
-                exit(1)
          
             # List of projects:
             project_list = list(self.project_modules_dict.keys())
