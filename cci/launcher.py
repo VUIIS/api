@@ -254,7 +254,7 @@ class Launcher(object):
         
         # iterate session level processors
         for sess_proc in sess_proc_list:       
-            if sess_proc.should_run(sess_info):
+            if sess_proc.should_run(sess_info,xnat):
                 sess_task = sess_proc.get_task(xnat, sess_info, self.upload_dir)
                 task_list.append(sess_task)
                         
