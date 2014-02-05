@@ -1,5 +1,7 @@
 from pyxnat import Interface
 import os, sys, shutil
+from datetime import datetime
+import redcap
 
 #Class JobHandler to copy file after the end of a Job
 class SpiderProcessHandler:
