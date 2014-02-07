@@ -1,5 +1,7 @@
 from pyxnat import Interface
 import os, sys, shutil
+from datetime import datetime
+import redcap
 
 #Class JobHandler to copy file after the end of a Job
 class SpiderProcessHandler:
@@ -770,3 +772,52 @@ def download_resource_assessor(directory,xnat,project,subject,experiment,assesso
     
     
     print'\n'
+    
+    
+#function to send the data to the VUIIS XNAT Jobs redcap project about what is running
+def save_job_redcap(data,record_id):
+	try:
+		# Environs
+		redcap_api_url = os.environ['API_URL']
+		redcap_api_key = os.environ['API_KEY_XNAT']
+	except KeyError as e:
+		print "You must set the environment variable %s to save the job on redcap." % str(e)
+		return 0
+        
+	try:
+		job_redcap_project = redcap.Project(redcap_api_url, redcap_api_key)
+		response = job_redcap_project.import_records([data])
+		assert 'count' in response
+		print ' ->Record '+record_id+ ' uploaded for <'+data['spider_module_name']+'> : ' + str(response['count'])
+		return 1
+	except AssertionError as e:
+		return 0
+	
+#create the data record for redcap
+def create_record_redcap(project,SM_name):
+	""" SM_name means the spider name or modules name: name_v# or name_vDEV#
+	"""
+	#data for redcap
+	data=dict()
+	#create the record_ID
+	date=str(datetime.now())
+	record_id=project+'-'+date.strip().replace(':','_').replace('.','_').replace(' ','_')
+	labels=SM_name.split('_v')
+	#version in the name, if not it's 0
+	if len(labels)>1:
+		# _v ( equals to 2 characters) + number of characters in the last labels that is the version number
+		nb_c=2+len(labels[-1])
+		name=SM_name[:-nb_c]
+		version='v'+labels[-1]
+	else:
+		name=SM_name
+		version='v0'
+		
+	#create the data for redcap
+	data['record_id']=record_id
+	data['spider_module_name']=name
+	data['spider_module_version']=version
+	data['date']=date
+	data['xnat_project']=project
+	return data,record_id
+	

@@ -2,6 +2,7 @@ import cluster
 from cluster import PBS
 from datetime import date
 import os, time
+import XnatUtils
 
 # Job Statuses
 NEED_TO_RUN='NEED_TO_RUN' # assessor that is ready to be launch on the cluster (ACCRE). All the input data for the process to run are there.
@@ -282,6 +283,15 @@ class Task(object):
             self.set_status(JOB_RUNNING)
             self.set_jobid(jobid)
             self.set_jobstartdate_today()
+            
+            #save record on redcap for the job that has been launch
+            project=self.assessor_label.split('-x-')[0]
+            SM_name=self.get_processor_name()
+            data,record_id=XnatUtils.create_record_redcap(project, SM_name)
+            run=XnatUtils.save_job_redcap(data,record_id)
+            if not run:
+                print(' ->ERROR: did not send the job to redcap for jobID <'+str(jobid)+'>: '+record_id)
+            
             return True
         
     def check_date(self):
