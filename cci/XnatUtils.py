@@ -635,7 +635,7 @@ def download_all_resources(Resource,directory):
         #if more than one file:
         if len(Resource.files().get())>1:
             #create a dir with the resourcename:
-            Outputdir=os.path.join(directory,Resource)
+            Outputdir=os.path.join(directory,Resource.label())
             if not os.path.exists(Outputdir):
                 os.mkdir(Outputdir)
             print '   ->Downloading all resources for '+Resource.label()+' as a zip'
