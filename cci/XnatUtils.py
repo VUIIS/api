@@ -578,7 +578,11 @@ def dl_good_resources_scan(Scan,resource_list,Outputdirectory,all_resources):
             resourceOK=1
 
         if resourceOK and all_resources:
-            download_all_resources(Scan.resource(Resource),Outputdirectory)
+            #one dir with the resource name when downloading all the resources
+            Outputdir=os.path.join(Outputdirectory,Resource)
+            if not os.path.exists(Outputdir):
+                os.mkdir(Outputdir)
+            download_all_resources(Scan.resource(Resource),Outputdir)
         elif resourceOK and not all_resources:
             dl,DLFileName=download_biggest_resources(Scan.resource(Resource),Outputdirectory)
             if not dl:
@@ -597,7 +601,7 @@ def dl_good_resources_assessor(Assessor,resource_list,Outputdirectory,all_resour
             resourceOK=1
 
         if resourceOK and all_resources:
-            download_all_resources(Assessor.out_resource(Resource),Outputdirectory)
+            download_all_resources(Assessor.out_resource(Resource),Outputdir)
         elif resourceOK and not all_resources:
             dl,DLFileName=download_biggest_resources(Assessor.out_resource(Resource),Outputdirectory)
             if not dl:
@@ -628,12 +632,24 @@ def download_biggest_resources(Resource,directory,filename='0'):
 
 def download_all_resources(Resource,directory):
     if os.path.exists(directory):
-        for fname in Resource.files().get()[:]:
-            DLFileName = os.path.join(directory,fname)
-            Resource.file(fname).get(DLFileName)
-
-            if '.zip' in DLFileName:
-                os.system('unzip -d '+directory+' '+DLFileName)
+        #if more than one file:
+        if len(Resource.files().get())>1:
+            #create a dir with the resourcename:
+            Outputdir=os.path.join(directory,Resource.label())
+            if not os.path.exists(Outputdir):
+                os.mkdir(Outputdir)
+            print '   ->Downloading all resources for '+Resource.label()+' as a zip'
+            Resource.get(Outputdir,extract=False) #not sure the extract True is working
+            print '   ->Unzipping ...' 
+            os.system('unzip -d '+Outputdir+' '+os.path.join(Outputdir,Resource.label()+'.zip'))
+        #if only one, if using download all resources, download it and unzip it if it's a zip
+        else:
+            print '   ->Downloading resource for '+Resource.label()
+            Input_res_label_fname = Resource.files().get()[0]
+            Resource.file(Input_res_label_fname).get(os.path.join(directory,Input_res_label_fname))
+            if os.path.join(directory,Input_res_label_fname)[-3:]=='zip':
+                print '   -> Unzipping ...'
+                os.system('unzip -d '+directory+' '+os.path.join(directory,Input_res_label_fname))
     else:
         print'ERROR download_all_resources in XnatUtils: Folder '+directory+' does not exist.'
 
