@@ -810,8 +810,6 @@ def save_job_redcap(data,record_id):
         return 1
     except AssertionError as e:
         return 0
-    except: #server down
-        return -1
 
 #create the data record for redcap
 def create_record_redcap(project,SM_name):
