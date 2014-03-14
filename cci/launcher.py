@@ -103,26 +103,16 @@ class Launcher(object):
             # Get lists of processors for this project
             sess_proc_list, scan_proc_list = processors.processors_by_type(self.project_process_dict[projectid])
             
+            # Get lists of assessors for this project
             assr_list  = XnatUtils.list_project_assessors(xnat, projectid)
-            for assr_info in assr_list:  
-                task_proc = None
-                            
+            
+            # Match each assessor to a processor, get a task, and add to list
+            for assr_info in assr_list: 
                 if assr_info['procstatus'] not in task.OPEN_STATUS_LIST and assr_info['qcstatus'] not in task.OPEN_QC_LIST:
                     continue
-                  
-                # Look for a match in sess processors
-                for sess_proc in sess_proc_list:
-                    if sess_proc.xsitype == assr_info['xsiType'] and sess_proc.name == assr_info['proctype']:
-                        task_proc = sess_proc
-                        break
-                            
-                # Look for a match in scan processors
-                if task_proc == None:
-                    for scan_proc in scan_proc_list:
-                        if scan_proc.xsitype == assr_info['xsiType'] and scan_proc.name == assr_info['proctype']:
-                            task_proc = scan_proc
-                            break
-                            
+                
+                task_proc = match_proc(xnat, assr_info, sess_proc_list, scan_proc_list)
+                             
                 if task_proc == None:
                     print('WARN:no matching processor found:'+assr_info['assessor_label'])
                     continue
@@ -133,6 +123,19 @@ class Launcher(object):
                 task_list.append(cur_task)      
                                         
         return task_list
+    
+    def match_proc(self, xnat, assr_info, sess_proc_list, scan_proc_list):         
+        # Look for a match in sess processors
+        for sess_proc in sess_proc_list:
+            if sess_proc.xsitype == assr_info['xsiType'] and sess_proc.name == assr_info['proctype']:
+                return sess_proc
+                    
+        # Look for a match in scan processors
+        for scan_proc in scan_proc_list:
+            if scan_proc.xsitype == assr_info['xsiType'] and scan_proc.name == assr_info['proctype']:
+                return scan_proc
+                    
+        return None     
                              
     def launch_jobs(self, task_list):
         # Check cluster
@@ -160,8 +163,8 @@ class Launcher(object):
                 print('ERROR:cannot get count of jobs from cluster')
                 return
                 
-    def lock_open_tasks(self,settings_filename):
-        lock_file = self.upload_dir+'/'+settings_filename+'_'+OPEN_TASKS_LOCK_FILE
+    def lock_open_tasks(self, lockfile_prefix):
+        lock_file = self.upload_dir+'/'+lockfile_prefix+'_'+OPEN_TASKS_LOCK_FILE
         
         if os.path.exists(lock_file):
             return False
@@ -169,8 +172,8 @@ class Launcher(object):
             open(lock_file, 'w').close()
             return True
                 
-    def unlock_open_tasks(self,settings_filename):
-        lock_file = self.upload_dir+'/'+settings_filename+'_'+OPEN_TASKS_LOCK_FILE
+    def unlock_open_tasks(self,lockfile_prefix):
+        lock_file = self.upload_dir+'/'+lockfile_prefix+'_'+OPEN_TASKS_LOCK_FILE
         
         if os.path.exists(lock_file):
             os.remove(lock_file)
@@ -187,8 +190,8 @@ class Launcher(object):
         now = (datetime.now() + timedelta(minutes=1)).strftime(UPDATE_FORMAT)
         subject.attrs.set(UPDATE_FIELD, UPDATE_PREFIX+now)
         
-    def lock_update(self,settings_filename):
-        lock_file = self.upload_dir+'/'+settings_filename+'_'+UPDATE_LOCK_FILE
+    def lock_update(self,lockfile_prefix):
+        lock_file = self.upload_dir+'/'+lockfile_prefix+'_'+UPDATE_LOCK_FILE
         
         if os.path.exists(lock_file):
             return False
@@ -196,16 +199,16 @@ class Launcher(object):
             open(lock_file, 'w').close()
             return True
         
-    def unlock_update(self,settings_filename):
-        lock_file = self.upload_dir+'/'+settings_filename+'_'+UPDATE_LOCK_FILE
+    def unlock_update(self,lockfile_prefix):
+        lock_file = self.upload_dir+'/'+lockfile_prefix+'_'+UPDATE_LOCK_FILE
         
         if os.path.exists(lock_file):
            os.remove(lock_file)
         
-    def update(self, settings_filename):        
+    def update(self, lockfile_prefix):        
         print('\n-------------- Update --------------')
         
-        success = self.lock_update(settings_filename)
+        success = self.lock_update(lockfile_prefix)
         if not success:
             print('ERROR:failed to get lock on new update')
             exit(1)   
@@ -221,21 +224,21 @@ class Launcher(object):
             for project_id in project_list:  
                 print('===== PROJECT:'+project_id+' =====')         
                
-                self.update_project(xnat, project_id, settings_filename)
+                self.update_project(xnat, project_id, lockfile_prefix)
                 
         finally:  
-                self.unlock_update(settings_filename)                                 
+                self.unlock_update(lockfile_prefix)                                 
                 xnat.disconnect()
                 print('Connection to XNAT closed')
         
-    def update_project(self, xnat, project_id, settings_filename):
+    def update_project(self, xnat, project_id, lockfile_prefix):
         exp_mod_list, scan_mod_list = [],[]
         exp_proc_list, scan_proc_list = [],[]
 
         # Get lists of modules/processors per scan/exp for this project
         if project_id in self.project_modules_dict:
             #Modules prerun
-            self.module_prerun(project_id, settings_filename)
+            self.module_prerun(project_id, lockfile_prefix)
             exp_mod_list, scan_mod_list = modules.modules_by_type(self.project_modules_dict[project_id])            
             
         if project_id in self.project_process_dict:        
@@ -307,12 +310,12 @@ class Launcher(object):
                 if (old_status != new_status):
                     print ('status changed from '+old_status+' to '+new_status)
                     
-    def update_open_tasks(self, settings_filename):
+    def update_open_tasks(self, lockfile_prefix):
         task_queue = []
         
         print('\n-------------- Open Tasks Update --------------')
         
-        success = self.lock_open_tasks(settings_filename)   
+        success = self.lock_open_tasks(lockfile_prefix)   
         if not success:
             print('ERROR:failed to get lock on open tasks update')
             exit(1)                              
@@ -342,11 +345,6 @@ class Launcher(object):
             self.launch_jobs(task_queue)
             
         finally:       
-            self.unlock_open_tasks(settings_filename)                                                      
+            self.unlock_open_tasks(lockfile_prefix)                                                      
             xnat.disconnect()
             print('Connection to XNAT closed')
-     
-                 
-                 
-   
-               

@@ -3,7 +3,7 @@ from datetime import datetime
 
 def parse_args():
     from argparse import ArgumentParser
-    ap = ArgumentParser(prog='update', description="Updates all tasks")
+    ap = ArgumentParser(prog='update_open_tasks', description="Updates open tasks")
     ap.add_argument(dest='settings_path', help='Settings Path')
     return ap.parse_args()
 
@@ -16,11 +16,7 @@ if __name__ == '__main__':
     settings = imp.load_source('settings', settings_path)
     lockfile_prefix = os.path.splitext(os.path.basename(settings_path))[0]
 
-    # Run the updates
-    print('INFO:running update, Start Time:'+str(datetime.now()))
-    settings.myLauncher.update(lockfile_prefix)
-    print('INFO:finished update, End Time: '+str(datetime.now()))
-
+    # Run the update
     print('INFO:updating open tasks, Start Time:'+str(datetime.now()))
     settings.myLauncher.update_open_tasks(lockfile_prefix)
     print('INFO:finished open tasks, End Time: '+str(datetime.now()))
