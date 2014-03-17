@@ -869,7 +869,10 @@ def list_project_assessors(intf, projectid):
     post_uri = '/REST/archive/experiments'
     post_uri += '?project='+projectid
     post_uri += '&xsiType=fs:fsdata'
-    post_uri += '&columns=ID,label,URI,xsiType,project,xnat:imagesessiondata/subject_id,xnat:imagesessiondata/id,xnat:imagesessiondata/label,URI,fs:fsData/procstatus,fs:fsData/validation/status&xsiType=fs:fsdata'
+    post_uri += '&columns=ID,label,URI,xsiType,project'
+    post_uri += ',xnat:imagesessiondata/subject_id,xnat:imagesessiondata/id'
+    post_uri += ',xnat:imagesessiondata/label,URI,fs:fsData/procstatus'
+    post_uri += ',fs:fsData/validation/status'
     assessor_list = intf._get_json(post_uri)
 
     for a in assessor_list:
@@ -895,7 +898,10 @@ def list_project_assessors(intf, projectid):
     post_uri = '/REST/archive/experiments'
     post_uri += '?project='+projectid
     post_uri += '&xsiType=proc:genprocdata'
-    post_uri += '&columns=ID,label,URI,xsiType,project,xnat:imagesessiondata/subject_id,xnat:imagesessiondata/id,xnat:imagesessiondata/label,proc:genprocdata/procstatus,proc:genprocdata/proctype,proc:genprocdata/validation/status'
+    post_uri += '&columns=ID,label,URI,xsiType,project'
+    post_uri += ',xnat:imagesessiondata/subject_id,xnat:imagesessiondata/id'
+    post_uri += ',xnat:imagesessiondata/label,proc:genprocdata/procstatus'
+    post_uri += ',proc:genprocdata/proctype,proc:genprocdata/validation/status'
     assessor_list = intf._get_json(post_uri)
 
     for a in assessor_list:
