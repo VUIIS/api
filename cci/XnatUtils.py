@@ -44,63 +44,83 @@ class SpiderProcessHandler:
         self.error=1
 
     def add_pdf(self,filepath):
-        #Check if it's a ps:
-        if os.path.splitext(filepath)[1].lower()=='.ps':
-            ps=os.path.basename(filepath)
-            pdf_path=os.path.splitext(filepath)[0]+'.pdf'
-            print '  -Converting '+ps+' file into a PDF '+pdf_path+' ...'
-            #convertion in pdf
-            os.system('ps2pdf '+filepath+' '+pdf_path)
+        #check if the file exists:
+        if not os.path.exists(filepath):
+            self.error=1
+            print 'ERROR: file '+filepath+' does not exists.'
         else:
-            pdf_path=filepath
-
-        #make the resource folder
-        if not os.path.exists(self.dir+'/PDF'):
-            os.mkdir(self.dir+'/PDF')
-
-        #mv the pdf
-        print'  -Copying PDF: '+pdf_path+' to '+self.dir
-        os.system('cp '+pdf_path+' '+self.dir+'/PDF/')
-        self.finish=1
+            #Check if it's a ps:
+            if os.path.splitext(filepath)[1].lower()=='.ps':
+                ps=os.path.basename(filepath)
+                pdf_path=os.path.splitext(filepath)[0]+'.pdf'
+                print '  -Converting '+ps+' file into a PDF '+pdf_path+' ...'
+                #convertion in pdf
+                os.system('ps2pdf '+filepath+' '+pdf_path)
+            else:
+                pdf_path=filepath
+    
+            #make the resource folder
+            if not os.path.exists(self.dir+'/PDF'):
+                os.mkdir(self.dir+'/PDF')
+    
+            #mv the pdf
+            print'  -Copying PDF: '+pdf_path+' to '+self.dir
+            os.system('cp '+pdf_path+' '+self.dir+'/PDF/')
+            self.finish=1
 
     def add_snapshot(self,snapshot):
-        #make the resource folder
-        if not os.path.exists(self.dir+'/SNAPSHOTS'):
-            os.mkdir(self.dir+'/SNAPSHOTS')
-        #mv the snapshot
-        print'  -Copying SNAPSHOTS: '+snapshot+' to '+self.dir
-        os.system('cp '+snapshot+' '+self.dir+'/SNAPSHOTS/')
+        #check if the file exists:
+        if not os.path.exists(snapshot):
+            self.error=1
+            print 'ERROR: file '+snapshot+' does not exists.'
+        else:
+            #make the resource folder
+            if not os.path.exists(self.dir+'/SNAPSHOTS'):
+                os.mkdir(self.dir+'/SNAPSHOTS')
+            #mv the snapshot
+            print'  -Copying SNAPSHOTS: '+snapshot+' to '+self.dir
+            os.system('cp '+snapshot+' '+self.dir+'/SNAPSHOTS/')
 
     def add_file(self,filePath,Resource):
-        #make the resource folder
-        if not os.path.exists(self.dir+'/'+Resource):
-            os.mkdir(self.dir+'/'+Resource)
-        #mv the file
-        print'  -Copying '+Resource+': '+filePath+' to '+self.dir
-        os.system('cp '+filePath+' '+self.dir+'/'+Resource+'/')
+        #check if the file exists:
+        if not os.path.exists(filePath):
+            self.error=1
+            print 'ERROR: file '+filePath+' does not exists.'
+        else:
+            #make the resource folder
+            if not os.path.exists(self.dir+'/'+Resource):
+                os.mkdir(self.dir+'/'+Resource)
+            #mv the file
+            print'  -Copying '+Resource+': '+filePath+' to '+self.dir
+            os.system('cp '+filePath+' '+self.dir+'/'+Resource+'/')
 
     def add_folder(self,FolderPath,ResourceName='nan'):
-        if ResourceName!='nan':
-            #make the resource folder
-            if not os.path.exists(self.dir+'/'+ResourceName):
-                os.mkdir(self.dir+'/'+ResourceName)
-            #Get the initial directory:
-            initDir=os.getcwd()
-            #get the directory :
-            Path,lastDir=os.path.split(FolderPath)
-            if lastDir=='':
-                Path,lastDir=os.path.split(FolderPath[:-1])
-            #mv the folder
-            os.chdir(Path)
-            os.system('zip -r '+ResourceName+'.zip '+lastDir)
-            os.system('mv '+ResourceName+'.zip '+self.dir+'/'+ResourceName+'/')
-            #return to the initial directory:
-            os.chdir(initDir)
-            print'  -Copying '+ResourceName+' after zipping the folder contents: '+FolderPath+' to '+self.dir
+        #check if the folder exists:
+        if not os.path.exists(FolderPath):
+            self.error=1
+            print 'ERROR: file '+FolderPath+' does not exists.'
         else:
-            #mv the folder
-            print'  -Moving '+FolderPath+' to '+self.dir
-            os.system('mv '+FolderPath+' '+self.dir)
+            if ResourceName!='nan':
+                #make the resource folder
+                if not os.path.exists(self.dir+'/'+ResourceName):
+                    os.mkdir(self.dir+'/'+ResourceName)
+                #Get the initial directory:
+                initDir=os.getcwd()
+                #get the directory :
+                Path,lastDir=os.path.split(FolderPath)
+                if lastDir=='':
+                    Path,lastDir=os.path.split(FolderPath[:-1])
+                #mv the folder
+                os.chdir(Path)
+                os.system('zip -r '+ResourceName+'.zip '+lastDir)
+                os.system('mv '+ResourceName+'.zip '+self.dir+'/'+ResourceName+'/')
+                #return to the initial directory:
+                os.chdir(initDir)
+                print'  -Copying '+ResourceName+' after zipping the folder contents: '+FolderPath+' to '+self.dir
+            else:
+                #mv the folder
+                print'  -Moving '+FolderPath+' to '+self.dir
+                os.system('mv '+FolderPath+' '+self.dir)
 
     def setAssessorStatus(self, status):
         # Connection to Xnat
