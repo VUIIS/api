@@ -41,7 +41,7 @@ def get_assessor_name_from_folder():
     for assessor_label in UploadDirList:
         assessor_path=UploadDir+'/'+assessor_label
         #if it's a folder and not OUTLOG and the flag file READY_TO_UPLAOD exists
-        if os.path.isdir(assessor_path) and assessor_label!='OUTLOG' and assessor_label!='TRASH' and assessor_label!='PBS' and os.path.exists(assessor_path+'/READY_TO_UPLOAD.txt'):
+        if os.path.isdir(assessor_path) and assessor_label!='OUTLOG' and assessor_label!='TRASH' and assessor_label!='PBS' and (os.path.exists(os.path.join(assessor_path,'READY_TO_UPLOAD.txt')) or os.path.exists(os.path.join(assessor_path,'JOB_FAILED.txt'))):
             if not os.path.exists(assessor_path+'/ALREADY_SEND_EMAIL.txt'):
                 #it's a folder for an assessor:
                 assessor_label_list.append(assessor_label)
