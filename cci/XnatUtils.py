@@ -98,7 +98,7 @@ class SpiderProcessHandler:
         #check if the folder exists:
         if not os.path.exists(FolderPath):
             self.error=1
-            print 'ERROR: file '+FolderPath+' does not exists.'
+            print 'ERROR: folder '+FolderPath+' does not exists.'
         else:
             if ResourceName!='nan':
                 #make the resource folder
