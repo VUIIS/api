@@ -42,7 +42,6 @@ class SpiderProcessHandler:
 
     def set_error(self):
         self.error=1
-        self.finish=1
 
     def add_pdf(self,filepath):
         #Check if it's a ps:
@@ -104,18 +103,9 @@ class SpiderProcessHandler:
             os.system('mv '+FolderPath+' '+self.dir)
 
     def setAssessorStatus(self, status):
-        try:
-            # Environs
-            VUIISxnat_user = os.environ['XNAT_USER']
-            VUIISxnat_pwd = os.environ['XNAT_PASS']
-            VUIISxnat_host = os.environ['XNAT_HOST']
-        except KeyError as e:
-            print "You must set the environment variable %s" % str(e)
-            sys.exit(1)
-
         # Connection to Xnat
         try:
-            xnat = Interface(VUIISxnat_host, VUIISxnat_user, VUIISxnat_pwd)
+            xnat = get_interface()
 
             assessor=xnat.select('/project/'+self.project+'/subjects/'+self.subject+'/experiments/'+self.experiment+'/assessors/'+self.assessor_label)
             if assessor.exists():
@@ -124,16 +114,17 @@ class SpiderProcessHandler:
             xnat.disconnect()
 
     def done(self):
-        if self.finish:
+        if self.finish and not self.error:
             print'INFO: Job ready to be upload, error: '+ str(self.error)
             #make the flag folder
-            open(self.dir+'/READY_TO_UPLOAD.txt', 'w').close()
-
-            if self.error:
-                open(self.dir+'/JOB_FAILED.txt', 'w').close()
+            open(os.path.join(self.dir,'READY_TO_UPLOAD.txt'), 'w').close()
             #set status to ReadyToUpload
             self.setAssessorStatus('READY_TO_UPLOAD')
         else:
+            print'INFO: Job failed, check the outlogs, error: '+ str(self.error)
+            #make the flag folder
+            open(os.path.join(self.dir,'JOB_FAILED.txt'), 'w').close()
+            #set status to JOB_FAILED
             self.setAssessorStatus('JOB_FAILED')
 
     def clean(self,directory):
@@ -341,17 +332,7 @@ def download_Scan(Outputdirectory,projectName,subject,experiment,scan,resource_l
         sys.exit()
 
     try:
-        # Environs
-        VUIISxnat_user = os.environ['XNAT_USER']
-        VUIISxnat_pwd = os.environ['XNAT_PASS']
-        VUIISxnat_host = os.environ['XNAT_HOST']
-    except KeyError as e:
-        print "You must set the environment variable %s" % str(e)
-        sys.exit(1)
-
-    # Connection to Xnat
-    try:
-        xnat = Interface(VUIISxnat_host, VUIISxnat_user, VUIISxnat_pwd)
+        xnat = get_interface()
         SCAN=xnat.select('/project/'+projectName+'/subjects/'+subject+'/experiments/'+experiment+'/scans/'+scan)
         if SCAN.exists():
             if SCAN.attrs.get('quality')!='unusable':
@@ -392,17 +373,7 @@ def download_ScanType(Outputdirectory,projectName,subject,experiment,List_scanty
         sys.exit()
 
     try:
-        # Environs
-        VUIISxnat_user = os.environ['XNAT_USER']
-        VUIISxnat_pwd = os.environ['XNAT_PASS']
-        VUIISxnat_host = os.environ['XNAT_HOST']
-    except KeyError as e:
-        print "You must set the environment variable %s" % str(e)
-        sys.exit(1)
-
-    # Connection to Xnat
-    try:
-        xnat = Interface(VUIISxnat_host, VUIISxnat_user, VUIISxnat_pwd)
+        xnat = get_interface()
 
         for scan in list_scans(xnat, projectName, subject, experiment):
             if scan['type'] in List_scantype:
@@ -443,17 +414,7 @@ def download_ScanSeriesDescription(Outputdirectory,projectName,subject,experimen
         sys.exit()
 
     try:
-        # Environs
-        VUIISxnat_user = os.environ['XNAT_USER']
-        VUIISxnat_pwd = os.environ['XNAT_PASS']
-        VUIISxnat_host = os.environ['XNAT_HOST']
-    except KeyError as e:
-        print "You must set the environment variable %s" % str(e)
-        sys.exit(1)
-
-    # Connection to Xnat
-    try:
-        xnat = Interface(VUIISxnat_host, VUIISxnat_user, VUIISxnat_pwd)
+        xnat = get_interface()
 
         for scan in list_scans(xnat, projectName, subject, experiment):
             SCAN=xnat.select('/project/'+projectName+'/subjects/'+subject+'/experiments/'+experiment+'/scans/'+scan['ID'])
@@ -493,17 +454,7 @@ def download_Assessor(Outputdirectory,assessor_label,resource_list,all_resources
         sys.exit()
 
     try:
-        # Environs
-        VUIISxnat_user = os.environ['XNAT_USER']
-        VUIISxnat_pwd = os.environ['XNAT_PASS']
-        VUIISxnat_host = os.environ['XNAT_HOST']
-    except KeyError as e:
-        print "You must set the environment variable %s" % str(e)
-        sys.exit(1)
-
-    # Connection to Xnat
-    try:
-        xnat = Interface(VUIISxnat_host, VUIISxnat_user, VUIISxnat_pwd)
+        xnat = get_interface()
         labels=assessor_label.split('-x-')
         ASSESSOR=xnat.select('/project/'+labels[0]+'/subjects/'+labels[1]+'/experiments/'+labels[2]+'/assessors/'+assessor_label)
         dl_good_resources_assessor(ASSESSOR,resource_list,Outputdirectory,all_resources)
@@ -542,17 +493,7 @@ def download_AssessorType(Outputdirectory,projectName,subject,experiment,List_pr
     List_process_type = [process_type.replace('FreeSurfer', 'FS') for process_type in List_process_type]
 
     try:
-        # Environs
-        VUIISxnat_user = os.environ['XNAT_USER']
-        VUIISxnat_pwd = os.environ['XNAT_PASS']
-        VUIISxnat_host = os.environ['XNAT_HOST']
-    except KeyError as e:
-        print "You must set the environment variable %s" % str(e)
-        sys.exit(1)
-
-    # Connection to Xnat
-    try:
-        xnat = Interface(VUIISxnat_host, VUIISxnat_user, VUIISxnat_pwd)
+        xnat = get_interface()
 
         for assessor in list_assessors(xnat, projectName, subject, experiment):
             for proc_type in List_process_type:
@@ -688,11 +629,6 @@ def upload_zip(Resource,directory):
     os.chdir(initDir)
 
 def clean_directory(folder_name):
-    """remove all the files in the folder.
-
-    parameters:
-        - folder_name = name of the folder
-    """
     files=os.listdir(folder_name)
     for f in files:
         if os.path.isdir(folder_name+'/'+f)==False:
