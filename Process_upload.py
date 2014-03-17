@@ -184,7 +184,8 @@ def Uploading_Assessor(xnat,assessor_path,ProjectName,Subject,Experiment,assesso
                             r.file(filename).put(Resource_path+'/'+filename)
                         
     #upload finish
-    assessor.attrs.set('proc:genProcData/procstatus', READY_TO_COMPLETE)
+    if os.path.exists(os.path.join(assessor_path,'READY_TO_UPLOAD.txt'):
+        assessor.attrs.set('proc:genProcData/procstatus', READY_TO_COMPLETE)
     os.system('rm -r '+assessor_path)
 
 def Uploading_OUTLOG(outlog_list,xnat):
@@ -376,7 +377,8 @@ def Upload_FreeSurfer(xnat,assessor_path,ProjectName,Subject,Experiment,assessor
                             r.file(filename).put(Resource_path+'/'+filename)
       
     #upload finish
-    assessor.attrs.set('fs:fsdata/procstatus',READY_TO_COMPLETE)
+    if os.path.exists(os.path.join(assessor_path,'READY_TO_UPLOAD.txt'):
+        assessor.attrs.set('fs:fsdata/procstatus',READY_TO_COMPLETE)
     os.system('rm -r '+assessor_path)
     
 def upload_zip(Resource,directory,resourceObj):
@@ -487,7 +489,10 @@ if __name__ == '__main__':
                                         #create the assessor and set the status 
                                         ASSESSOR.create(assessors='fs:fsData')
                                         #Set attributes
-                                        ASSESSOR.attrs.set('fs:fsData/procstatus','UPLOADING') #Set to uploading files
+                                        if os.path.exists(os.path.join(assessor_path,'READY_TO_UPLOAD.txt'):
+                                            ASSESSOR.attrs.set('fs:fsData/procstatus','UPLOADING') #Set to uploading files
+                                        elif os.path.exists(os.path.join(assessor_path,'JOB_FAILED.txt'):
+                                            ASSESSOR.attrs.set('fs:fsData/procstatus','JOB_FAILED') #Set to uploading files
                                         ASSESSOR.attrs.set('fs:fsData/validation/status','Job Pending')
                                         ASSESSOR.attrs.set('fs:fsData/proctype', 'FreeSurfer')
                                         now=datetime.now()
@@ -497,7 +502,10 @@ if __name__ == '__main__':
                                         #create the assessor and set the status 
                                         ASSESSOR.create(assessors='proc:genProcData')
                                         #Set attributes
-                                        ASSESSOR.attrs.set('proc:genProcData/procstatus','UPLOADING') #Set to uploading files
+                                        if os.path.exists(os.path.join(assessor_path,'READY_TO_UPLOAD.txt'):
+                                            ASSESSOR.attrs.set('proc:genProcData/procstatus','UPLOADING') #Set to uploading files
+                                        elif os.path.exists(os.path.join(assessor_path,'JOB_FAILED.txt'):
+                                            ASSESSOR.attrs.set('proc:genProcData/procstatus','JOB_FAILED') #Set to uploading files
                                         ASSESSOR.attrs.set('proc:genProcData/validation/status','Job Pending')
                                         ASSESSOR.attrs.set('proc:genProcData/proctype', Process_name)
                                         now=datetime.now()
@@ -515,7 +523,8 @@ if __name__ == '__main__':
                                             send_an_email=1
                                         else:
                                             #set the status to Upload :
-                                            ASSESSOR.attrs.set('fs:fsData/procstatus', UPLOADING)
+                                            if os.path.exists(os.path.join(assessor_path,'READY_TO_UPLOAD.txt'):
+                                                ASSESSOR.attrs.set('fs:fsData/procstatus', UPLOADING)
                                             Upload_FreeSurfer(xnat,assessor_path,ProjectName,Subject,Experiment,assessor_label)
                                     ################# Default Assessor #################
                                     else:
@@ -527,7 +536,8 @@ if __name__ == '__main__':
                                             send_an_email=1
                                         else:
                                             #set the status to Upload :
-                                            ASSESSOR.attrs.set('proc:genProcData/procstatus', UPLOADING)
+                                            if os.path.exists(os.path.join(assessor_path,'READY_TO_UPLOAD.txt'):
+                                                ASSESSOR.attrs.set('proc:genProcData/procstatus', UPLOADING)
                                             Uploading_Assessor(xnat,assessor_path,ProjectName,Subject,Experiment,assessor_label)
                                     
                             else:
