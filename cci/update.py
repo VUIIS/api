@@ -20,7 +20,3 @@ if __name__ == '__main__':
     print('INFO:running update, Start Time:'+str(datetime.now()))
     settings.myLauncher.update(lockfile_prefix)
     print('INFO:finished update, End Time: '+str(datetime.now()))
-
-    print('INFO:updating open tasks, Start Time:'+str(datetime.now()))
-    settings.myLauncher.update_open_tasks(lockfile_prefix)
-    print('INFO:finished open tasks, End Time: '+str(datetime.now()))
