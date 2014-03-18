@@ -289,8 +289,10 @@ class Task(object):
             SM_name=self.get_processor_name()
             data,record_id=XnatUtils.create_record_redcap(project, SM_name)
             run=XnatUtils.save_job_redcap(data,record_id)
-            if not run:
-                print(' ->ERROR: did not send the job to redcap for jobID <'+str(jobid)+'>: '+record_id)
+            if run==0:
+                print(' ->ERROR: did not send the job <'+str(jobid)+'> to redcap, assertion error: '+record_id)
+            elif run==-1:
+                print(' ->ERROR: did not send the job <'+str(jobid)+'> to redcap, server down: '+record_id)
             
             return True
         
