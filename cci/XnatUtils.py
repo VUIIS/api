@@ -539,11 +539,7 @@ def dl_good_resources_scan(Scan,resource_list,Outputdirectory,all_resources):
             resourceOK=1
 
         if resourceOK and all_resources:
-            #one dir with the resource name when downloading all the resources
-            Outputdir=os.path.join(Outputdirectory,Resource)
-            if not os.path.exists(Outputdir):
-                os.mkdir(Outputdir)
-            download_all_resources(Scan.resource(Resource),Outputdir)
+            download_all_resources(Scan.resource(Resource),Outputdirectory)
         elif resourceOK and not all_resources:
             dl,DLFileName=download_biggest_resources(Scan.resource(Resource),Outputdirectory)
             if not dl:
@@ -562,7 +558,7 @@ def dl_good_resources_assessor(Assessor,resource_list,Outputdirectory,all_resour
             resourceOK=1
 
         if resourceOK and all_resources:
-            download_all_resources(Assessor.out_resource(Resource),Outputdir)
+            download_all_resources(Assessor.out_resource(Resource),Outputdirectory)
         elif resourceOK and not all_resources:
             dl,DLFileName=download_biggest_resources(Assessor.out_resource(Resource),Outputdirectory)
             if not dl:
