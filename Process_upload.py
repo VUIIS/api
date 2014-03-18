@@ -68,15 +68,8 @@ def get_outlog_from_folder():
         outlog_file=os.path.join(UploadDir,'OUTLOG',outlog_name)
         #if it's a folder and not OUTLOG and the flag file READY_TO_UPLAOD exists
         if os.path.isfile(outlog_file):
-            assessor_label=outlog_name[:-7]
-            if os.path.isdir(os.path.join(UploadDir,assessor_label)) and not os.path.exists(os.path.join(UploadDir,assessor_label,'READY_TO_COMPLETE.txt')):
-                assessor_outlog_folder=os.path.join(UploadDir,assessor_label,'OUTLOG')
-                if not os.path.exists(assessor_outlog_folder):
-                    os.mkdir(assessor_outlog_folder)
-                os.system('mv '+outlog_file+' '+assessor_outlog_folder)
-            else:
-                #Add the file to the list to be uploaded:
-                outlog_list.append(outlog_name)
+            #Add the file to the list to be uploaded:
+            outlog_list.append(outlog_name)
             
     return outlog_list
 
@@ -212,14 +205,15 @@ def Uploading_OUTLOG(outlog_list,xnat):
                     
                 if r.exists():
                     print 'WARNING : the OUTLOG resource already exists for the assessor '+assessor_label
-                    print 'Copying the outlog file in the assessor folder if exists or in trash if not.'
                     #check if there is a folder with the same name : if yes, put the outlog there. If not upload it.
                     if  os.path.isdir(os.path.join(UploadDir,assessor_label)):
+                        print 'WARNING: Copying the pbs file in the assessor folder...'
                         assessor_outlog_folder=os.path.join(UploadDir,assessor_label,'OUTLOG')
                         if not os.path.exists(assessor_outlog_folder):
                             os.mkdir(assessor_outlog_folder)
                         os.system('mv '+os.path.join(UploadDir,'OUTLOG',outlogfile)+' '+assessor_outlog_folder)
                     else:
+                        print 'WARNING: Copying the pbs file in the TRASH ...'
                         os.rename(os.path.join(UploadDir,'OUTLOG',outlogfile),os.path.join(UploadDir,'TRASH',outlogfile))
                 else:
                     #upload the file
@@ -227,11 +221,11 @@ def Uploading_OUTLOG(outlog_list,xnat):
                     r.file(outlogfile).put(os.path.join(UploadDir,'OUTLOG',outlogfile))
                     os.remove(os.path.join(UploadDir,'OUTLOG',outlogfile))
             else:
-                print 'ERROR: The assessor does not exist:'+assessor_label
+                print 'ERROR: The assessor '+assessor_label+' does not exist. Copy to TRASH.'
                 os.rename(os.path.join(UploadDir,'OUTLOG',outlogfile),os.path.join(UploadDir,'TRASH',outlogfile))
                 
         else:
-            print 'ERROR: The Output PBS file '+outlogfile+' has a wrong ProjectName or Subject label or Experiment label in his name.'
+            print 'ERROR: The Output PBS file '+outlogfile+' has a wrong ProjectName or Subject label or Experiment label in his name. Copy to TRASH.'
             os.rename(os.path.join(UploadDir,'OUTLOG',outlogfile),os.path.join(UploadDir,'TRASH',outlogfile))
 
 def Uploading_PBS(pbs_list,xnat):
@@ -255,19 +249,28 @@ def Uploading_PBS(pbs_list,xnat):
                 #remove the previous resource if exists
                 r=assessor.out_resource('PBS')
                 if r.exists():
-                    assessor.out_resource('PBS').delete()
-               
-                #upload the file
-                r=assessor.out_resource('PBS')
-                r.file(pbsfile).put(UploadDir+'/PBS/'+pbsfile)
-                os.remove(UploadDir+'/PBS/'+pbsfile)
-            
+                    print 'WARNING : the PBS resource already exists for the assessor '+assessor_label
+                    #check if there is a folder with the same name : if yes, put the outlog there. If not upload it.
+                    if  os.path.isdir(os.path.join(UploadDir,assessor_label)):
+                        print 'WARNING: Copying the pbs file in the assessor folder...'
+                        assessor_pbs_folder=os.path.join(UploadDir,assessor_label,'PBS')
+                        if not os.path.exists(assessor_pbs_folder):
+                            os.mkdir(assessor_pbs_folder)
+                        os.system('mv '+os.path.join(UploadDir,'PBS',pbsfile)+' '+assessor_pbs_folder)
+                    else:
+                        print 'WARNING: Copying the pbs file in the TRASH ...'
+                        os.rename(os.path.join(UploadDir,'PBS',pbsfile),os.path.join(UploadDir,'TRASH',pbsfile))
+                else:
+                    #upload the file
+                    r=assessor.out_resource('PBS')
+                    r.file(pbsfile).put(UploadDir+'/PBS/'+pbsfile)
+                    os.remove(UploadDir+'/PBS/'+pbsfile)
             else:
-                print 'ERROR: The assessor does not exist'
+                print 'ERROR: The assessor '+assessor_label+' does not exist. Copy to TRASH.'
                 os.rename(UploadDir+'/PBS/'+pbsfile,UploadDir+'/TRASH/'+pbsfile)
                 
         else:
-            print 'ERROR: The PBS file '+pbsfile+' has a wrong ProjectName or Subject label or Experiment label in his name.'
+            print 'ERROR: The PBS file '+pbsfile+' has a wrong ProjectName or Subject label or Experiment label in his name. Copy to TRASH.'
             os.rename(UploadDir+'/PBS/'+pbsfile,UploadDir+'/TRASH/'+pbsfile)
     
 def Upload_FreeSurfer(xnat,assessor_path,ProjectName,Subject,Experiment,assessor_label):
