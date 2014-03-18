@@ -207,13 +207,13 @@ def Uploading_OUTLOG(outlog_list,xnat):
                     print 'WARNING : the OUTLOG resource already exists for the assessor '+assessor_label
                     #check if there is a folder with the same name : if yes, put the outlog there. If not upload it.
                     if  os.path.isdir(os.path.join(UploadDir,assessor_label)):
-                        print 'WARNING: Copying the pbs file in the assessor folder...'
+                        print 'WARNING: Copying the outlog file in the assessor folder...'
                         assessor_outlog_folder=os.path.join(UploadDir,assessor_label,'OUTLOG')
                         if not os.path.exists(assessor_outlog_folder):
                             os.mkdir(assessor_outlog_folder)
                         os.system('mv '+os.path.join(UploadDir,'OUTLOG',outlogfile)+' '+assessor_outlog_folder)
                     else:
-                        print 'WARNING: Copying the pbs file in the TRASH ...'
+                        print 'WARNING: Copying the outlog file in the TRASH ...'
                         os.rename(os.path.join(UploadDir,'OUTLOG',outlogfile),os.path.join(UploadDir,'TRASH',outlogfile))
                 else:
                     #upload the file
