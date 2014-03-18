@@ -149,8 +149,10 @@ class Launcher(object):
             #save the modules to redcap project vuiis xnat job before the prerun:
             data,record_id=XnatUtils.create_record_redcap(projectID, mod.getname())
             run=XnatUtils.save_job_redcap(data,record_id)
-            if not run:
-                print(' ->ERROR: did not send the job to redcap for <'+mod.getname()+'> : '+record_id)
+            if run==0:
+                print(' ->ERROR: did not send the module <'+str(mod.getname())+'> to redcap, assertion error: '+record_id)
+            elif run==-1:
+                print(' ->ERROR: did not send the module <'+str(mod.getname())+'> to redcap, server down: '+record_id)
                 
             mod.prerun(settings_filename)
             
