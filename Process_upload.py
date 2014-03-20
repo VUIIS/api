@@ -472,6 +472,7 @@ if __name__ == '__main__':
     send_an_email=0;
     flag_files_list=list()
     warning_list=list()
+    TEXT=None
     
     print 'Time at the beginning of the Process_Upload: ', str(datetime.now()),'\n'
 
