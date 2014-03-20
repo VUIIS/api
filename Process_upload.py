@@ -479,14 +479,16 @@ if __name__ == '__main__':
         sys.exit(1) 
     
     #make the two special directory
-    if not os.path.exists(UploadDir+'/OUTLOG'):
-        os.mkdir(UploadDir+'/OUTLOG')
-    if not os.path.exists(UploadDir+'/TRASH'):
-        os.mkdir(UploadDir+'/TRASH')
-    if not os.path.exists(UploadDir+'/PBS'):
-        os.mkdir(UploadDir+'/PBS')
-    if not os.path.exists(UploadDir+'/FlagFiles'):
-        os.mkdir(UploadDir+'/FlagFiles')
+    if not os.path.exists(UploadDir):
+        os.mkdir(UploadDir)
+    if not os.path.exists(os.path.join(UploadDir,'OUTLOG')):
+        os.mkdir(os.path.join(UploadDir,'OUTLOG'))
+    if not os.path.exists(os.path.join(UploadDir,'TRASH')):
+        os.mkdir(os.path.join(UploadDir,'TRASH'))
+    if not os.path.exists(os.path.join(UploadDir,'PBS')):
+        os.mkdir(os.path.join(UploadDir,'PBS'))
+    if not os.path.exists(os.path.join(UploadDir,'FlagFiles')):
+        os.mkdir(os.path.join(UploadDir,'FlagFiles'))
     
     #check if this spider is still running for the former called by checking the flagfile Spider_Process_Upload_running.txt
     if not os.path.exists(os.path.join(UploadDir,'FLagFiles','Process_Upload_running.txt')):
