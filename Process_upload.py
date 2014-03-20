@@ -471,7 +471,7 @@ if __name__ == '__main__':
     #Email variables :
     send_an_email=0;
     flag_files_list=list()
-    TEXT='\nThe following assessor already exists and the Spider try to upload files on existing files :\n'
+    warning_list=list()
     
     print 'Time at the beginning of the Process_Upload: ', str(datetime.now()),'\n'
 
@@ -589,8 +589,7 @@ if __name__ == '__main__':
                                             if not os.path.exists(assessor_path+'/ALREADY_SEND_EMAIL.txt'):
                                                 open(assessor_path+'/ALREADY_SEND_EMAIL.txt', 'w').close()
                                             print '  -->Data already present on XNAT.\n'
-                                            TEXT+='\t- Project : '+ProjectName+' / Subject : '+Subject+' / Experiment : '+Experiment+' / Assessor label : '+ assessor_label+'\n'
-                                            send_an_email=1
+                                            warning_list.append('\t- Project : '+ProjectName+' / Subject : '+Subject+' / Experiment : '+Experiment+' / Assessor label : '+ assessor_label+'\n')
                                         else:
                                             #set the status to Upload :
                                             if os.path.exists(os.path.join(assessor_path,'READY_TO_UPLOAD.txt')):
@@ -602,8 +601,7 @@ if __name__ == '__main__':
                                             if not os.path.exists(assessor_path+'/ALREADY_SEND_EMAIL.txt'):
                                                 open(assessor_path+'/ALREADY_SEND_EMAIL.txt', 'w').close()
                                             print 'Data already exist.\n'
-                                            TEXT+='\t- Project : '+ProjectName+' / Subject : '+Subject+' / Experiment : '+Experiment+' / Assessor label : '+ assessor_label+'\n'
-                                            send_an_email=1
+                                            warning_list.append('\t- Project : '+ProjectName+' / Subject : '+Subject+' / Experiment : '+Experiment+' / Assessor label : '+ assessor_label+'\n')
                                         else:
                                             #set the status to Upload :
                                             if os.path.exists(os.path.join(assessor_path,'READY_TO_UPLOAD.txt')):
@@ -630,8 +628,11 @@ if __name__ == '__main__':
                 #if fail, close the connection to xnat
                 finally:
                     #Sent an email
-                    if (send_an_email or flag_files_list)  and emailaddress!='' :
-                        if TEXT:
+                    if (warning_list or flag_files_list)  and emailaddress!='' :
+                        if warning_list:
+                            TEXT='\nThe following assessor already exists and the Spider try to upload files on existing files :\n'
+                            for warning in warning_list:
+                                TEXT+=' - '+warning+'\n'
                             TEXT+='\nYou should :\n\t-remove the assessor if you want to upload the data \n\t-set the status of the assessor to "uploading" \n\t-remove the data from the upload folder if you do not want to upload this data.\n'
                         SUBJECT='ERROR/WARNING: XNAT Process Upload'
                         if flag_files_list:
