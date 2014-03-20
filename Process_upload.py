@@ -14,6 +14,8 @@ from pyxnat import Interface
 from task import READY_TO_COMPLETE, COMPLETE, UPLOADING
 import subprocess
 from subprocess import CalledProcessError
+from email.mime.text import MIMEText
+from email.MIMEBase import MIMEBase
 
 def parse_args():
     from optparse import OptionParser
