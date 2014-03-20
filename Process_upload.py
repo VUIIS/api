@@ -147,10 +147,13 @@ def check_process(process_file):
     try:
         output = subprocess.check_output(cmd, stderr=subprocess.STDOUT, shell=True)
         if len(output.split('\n'))>3:
+            #there is a process running
             return 0
         else:
+            #no process, send an email
             return 1
     except (CalledProcessError,ValueError):
+        #error , send an email
         return 1
 
 def check_crontab_job(UploadDir):
