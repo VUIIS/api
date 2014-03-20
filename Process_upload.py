@@ -491,9 +491,9 @@ if __name__ == '__main__':
         os.mkdir(os.path.join(UploadDir,'FlagFiles'))
     
     #check if this spider is still running for the former called by checking the flagfile Spider_Process_Upload_running.txt
-    if not os.path.exists(os.path.join(UploadDir,'FLagFiles','Process_Upload_running.txt')):
+    if not os.path.exists(os.path.join(UploadDir,'FlagFiles','Process_Upload_running.txt')):
         #create the flag file showing that the spider is running 
-        f=open(os.path.join(UploadDir,'FLagFiles','Process_Upload_running.txt'), 'w')
+        f=open(os.path.join(UploadDir,'FlagFiles','Process_Upload_running.txt'), 'w')
         today=datetime.now()
         datestr="Date: "+str(today.year)+str(today.month)+str(today.day)+'_'+str(today.hour)+':'+str(today.minute)+':'+str(today.second)
         f.write(datestr+'\n')
@@ -637,7 +637,7 @@ if __name__ == '__main__':
         #Stop the process before the end or end of the script, remove the flagfile for the spider running 
         finally:
             #remove flagfile
-            os.remove(os.path.join(UploadDir,'FLagFiles','Process_Upload_running.txt'))
+            os.remove(os.path.join(UploadDir,'FlagFiles','Process_Upload_running.txt'))
             print '===================================================================\n'
     else:
         print 'WARNING: Upload already running.'
