@@ -16,6 +16,8 @@ import subprocess
 from subprocess import CalledProcessError
 from email.mime.text import MIMEText
 from email.MIMEBase import MIMEBase
+import smtplib
+from email import Encoders
 
 def parse_args():
     from optparse import OptionParser
@@ -258,7 +260,7 @@ def Uploading_Assessor(xnat,assessor_path,ProjectName,Subject,Experiment,assesso
 def Uploading_OUTLOG(outlog_list,xnat):
     number_outlog=len(outlog_list)
     for index,outlogfile in enumerate(outlog_list):
-        print' *Uploading OUTLOG '+str(index+1)+'/'+str(number_outlog)+' -- File name: '+outlogfile
+        print'   *Uploading OUTLOG '+str(index+1)+'/'+str(number_outlog)+' -- File name: '+outlogfile
         #Get the Project Name, the subject label, the experiment label and the assessor label from the file name :
         labels=outlogfile.split('-x-')
         ProjectName=labels[0]
@@ -303,7 +305,7 @@ def Uploading_OUTLOG(outlog_list,xnat):
 def Uploading_PBS(pbs_list,xnat):
     number_pbs=len(pbs_list)
     for index,pbsfile in enumerate(pbs_list):
-        print' *Uploading PBS '+str(index+1)+'/'+str(number_pbs)+' -- File name: '+pbsfile
+        print'   *Uploading PBS '+str(index+1)+'/'+str(number_pbs)+' -- File name: '+pbsfile
         #Get the Project Name, the subject label, the experiment label and the assessor label from the file name :
         labels=pbsfile.split('-x-')
         ProjectName=labels[0]
