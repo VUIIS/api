@@ -160,7 +160,7 @@ def check_crontab_job(UploadDir):
     flag_files_list=list()
     for files in os.listdir(os.path.join(UploadDir,'FlagFiles')):
         #check if there is a process for this file, if not send a warning to the User
-        keep=check_process(UploadDir,files)
+        keep=check_process(files)
         if keep:
             flag_files_list.append(files)
             
