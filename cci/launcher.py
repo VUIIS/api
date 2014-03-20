@@ -306,7 +306,7 @@ class Launcher(object):
                 return
                 
     def lock_open_tasks(self, lockfile_prefix):
-        lock_file = self.upload_dir+'/'+lockfile_prefix+'_'+OPEN_TASKS_LOCK_FILE
+        lock_file = os.path.join(self.upload_dir,'FlagFiles',lockfile_prefix+'_'+OPEN_TASKS_LOCK_FILE)
         
         if os.path.exists(lock_file):
             return False
@@ -315,7 +315,7 @@ class Launcher(object):
             return True
         
     def lock_update(self,lockfile_prefix):
-        lock_file = self.upload_dir+'/'+lockfile_prefix+'_'+UPDATE_LOCK_FILE
+        lock_file = os.path.join(self.upload_dir,'FlagFiles',lockfile_prefix+'_'+UPDATE_LOCK_FILE)
         
         if os.path.exists(lock_file):
             return False
@@ -324,13 +324,13 @@ class Launcher(object):
             return True
                 
     def unlock_open_tasks(self,lockfile_prefix):
-        lock_file = self.upload_dir+'/'+lockfile_prefix+'_'+OPEN_TASKS_LOCK_FILE
+        lock_file = os.path.join(self.upload_dir,'FlagFiles',lockfile_prefix+'_'+OPEN_TASKS_LOCK_FILE)
         
         if os.path.exists(lock_file):
             os.remove(lock_file)
                
     def unlock_update(self,lockfile_prefix):
-        lock_file = self.upload_dir+'/'+lockfile_prefix+'_'+UPDATE_LOCK_FILE
+        lock_file = os.path.join(self.upload_dir,'FlagFiles',lockfile_prefix+'_'+UPDATE_LOCK_FILE)
         
         if os.path.exists(lock_file):
            os.remove(lock_file)
