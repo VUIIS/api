@@ -159,9 +159,11 @@ def check_process(process_file):
 def check_crontab_job(UploadDir):
     flag_files_list=list()
     for files in os.listdir(os.path.join(UploadDir,'FlagFiles')):
+        print '   - Check '+files
         #check if there is a process for this file, if not send a warning to the User
         keep=check_process(files)
         if keep:
+            print '    --> Process seems to get error. Need to be checked.'
             flag_files_list.append(files)
             
     return flag_files_list
@@ -609,13 +611,16 @@ if __name__ == '__main__':
                       
                     ################# 2) Upload the Outlog files ###############
                     #For each file, upload it to the OUTLOG resource on the assessor
+                    print ' - Uploading OUTLOG files ...'
                     Uploading_OUTLOG(outlog_list,xnat)
                     
                     ################# 3) Upload the PBS files ###############
                     #For each file, upload it to the PBS resource
+                    print ' - Uploading PBS files ...'
                     Uploading_PBS(pbs_list,xnat)
                     
                     ################# 4) Check flagfile and process running ps -aux ################
+                    print ' - Checking process running ...'
                     flag_files_list=check_crontab_job(UploadDir)
                     
                 #if fail, close the connection to xnat
