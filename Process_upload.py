@@ -464,6 +464,7 @@ if __name__ == '__main__':
     
     #Email variables :
     send_an_email=0;
+    flag_files_list=list()
     TEXT='\nThe following assessor already exists and the Spider try to upload files on existing files :\n'
     
     print 'Time at the beginning of the Process_Upload: ', str(datetime.now()),'\n'
