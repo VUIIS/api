@@ -143,14 +143,14 @@ def check_process(process_file):
         return 0
     elif 'OPEN_TASKS_UPDATE' in process_file:
         project_name=process_file.split('_OPEN_TASKS_UPDATE_RUNNING')[0]
-        cmd = 'ps -aux | grep "python-pkg/api/cci/update_open_tasks.py" | grep "'+project_name+'"'
+        cmd = 'ps -aux | grep "api/cci/update_open_tasks.py" | grep "'+project_name+'"'
     else:
         project_name=process_file.split('_UPDATE_RUNNING')[0]
-        cmd = 'ps -aux | grep "python-pkg/api/cci/update.py" | grep "'+project_name+'"'
+        cmd = 'ps -aux | grep "api/cci/update.py" | grep "'+project_name+'"'
     
     try:
         output = subprocess.check_output(cmd, stderr=subprocess.STDOUT, shell=True)
-        if len(output.split('\n'))>3:
+        if len(output.split('\n'))>1:
             #there is a process running
             return 0
         else:
