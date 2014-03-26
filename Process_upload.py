@@ -150,7 +150,8 @@ def check_process(process_file):
     
     try:
         output = subprocess.check_output(cmd, stderr=subprocess.STDOUT, shell=True)
-        if len(output.split('\n'))>1:
+        if len(output.split('\n'))>3:
+            #three because one is warning, two is the line we just do (ps -aux ...) and three is empty line
             #there is a process running
             return 0
         else:
@@ -167,7 +168,7 @@ def check_crontab_job(UploadDir):
         #check if there is a process for this file, if not send a warning to the User
         keep=check_process(files)
         if keep:
-            print '    --> Process seems to get error. Need to be checked.'
+            print "    --> Process doesn't seem to be running. ERROR. Need to be checked."
             flag_files_list.append(files)
             
     return flag_files_list
