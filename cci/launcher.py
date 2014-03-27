@@ -268,11 +268,11 @@ class Launcher(object):
                     sess_task = sess_proc.get_task(xnat, sess_info, self.upload_dir)
                     task_list.append(sess_task)
                 
-                for scan_info in scan_list:
-                    for scan_proc in scan_proc_list:
-                        if scan_proc.should_run(scan_info):
-                            scan_task = scan_proc.get_task(xnat, scan_info, self.upload_dir)
-                            task_list.append(scan_task)
+            for scan_info in scan_list:
+                for scan_proc in scan_proc_list:
+                    if scan_proc.should_run(scan_info):
+                        scan_task = scan_proc.get_task(xnat, scan_info, self.upload_dir)
+                        task_list.append(scan_task)
               
             # Processors - update tasks                   
             for cur_task in task_list:
