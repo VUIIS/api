@@ -45,7 +45,7 @@ def sendMail(FROM,PWS,TO,SUBJECT,TEXT,SERVER,filename='nan'):
     # me == the sender's email address
     # family = the list of all recipients' email addresses
     msg['From'] = FROM
-    msg['To'] = ",".join(TO)
+    msg['To'] = TO
     
     #attached the file if one :
     if filename!='nan':
