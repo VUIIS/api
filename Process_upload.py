@@ -9,10 +9,15 @@ Created on Mar 13, 2013
 
 import os
 import sys
-import Spiders
 from datetime import datetime
 from pyxnat import Interface
 from task import READY_TO_COMPLETE, COMPLETE, UPLOADING
+import subprocess
+from subprocess import CalledProcessError
+from email.mime.text import MIMEText
+from email.MIMEBase import MIMEBase
+import smtplib
+from email import Encoders
 
 def parse_args():
     from optparse import OptionParser
@@ -21,6 +26,41 @@ def parse_args():
     parser.add_option("-e", "--emailaddress", dest="emailaddress",default='',
                   help="Email address to prevent if an assessor already exists.", metavar="EMAIL ADDRESS")
     return parser.parse_args()
+
+def sendMail(FROM,PWS,TO,SUBJECT,TEXT,SERVER,filename='nan'):
+    """send an email from FROM (with the password PWS) to TO with the subject and text given.
+    
+    parameters:
+        - FROM = email address from where the e-amil is sent
+        - PWS = password of the email address
+        - TO = list of email address which will receive the email
+        - SUBJECT =  subject of the email
+        - TEXT = inside of the email
+        - server = server used to send the email
+        - filename = fullpath to a file that need to be attached
+    """
+    # Create the container (outer) email message.
+    msg = MIMEText(TEXT)
+    msg['Subject'] = SUBJECT
+    # me == the sender's email address
+    # family = the list of all recipients' email addresses
+    msg['From'] = FROM
+    msg['To'] = TO
+    
+    #attached the file if one :
+    if filename!='nan':
+        part = MIMEBase('application', "octet-stream")
+        part.set_payload( open(filename,"rb").read() )
+        Encoders.encode_base64(part)
+        part.add_header('Content-Disposition', 'attachment; filename="%s"' % os.path.basename(filename))
+        msg.attach(part)
+    
+    # Send the email via our own SMTP server.
+    s = smtplib.SMTP(SERVER)
+    s.starttls()
+    s.login(FROM,PWS)
+    s.sendmail(FROM, TO, msg.as_string())
+    s.quit()
 
 def get_assessor_name_from_folder():
     #Get the assessor label from the folders in Upload Directory that are ready to be upload
@@ -41,7 +81,7 @@ def get_assessor_name_from_folder():
     for assessor_label in UploadDirList:
         assessor_path=UploadDir+'/'+assessor_label
         #if it's a folder and not OUTLOG and the flag file READY_TO_UPLAOD exists
-        if os.path.isdir(assessor_path) and assessor_label!='OUTLOG' and assessor_label!='TRASH' and assessor_label!='PBS' and (os.path.exists(os.path.join(assessor_path,'READY_TO_UPLOAD.txt')) or os.path.exists(os.path.join(assessor_path,'JOB_FAILED.txt'))):
+        if os.path.isdir(assessor_path) and assessor_label!='OUTLOG' and assessor_label!='TRASH' and assessor_label!='PBS' and assessor_label!='FlagFiles' and (os.path.exists(os.path.join(assessor_path,'READY_TO_UPLOAD.txt')) or os.path.exists(os.path.join(assessor_path,'JOB_FAILED.txt'))):
             if not os.path.exists(assessor_path+'/ALREADY_SEND_EMAIL.txt'):
                 #it's a folder for an assessor:
                 assessor_label_list.append(assessor_label)
@@ -98,6 +138,41 @@ def get_pbs_from_folder():
             
     return pbs_list
 
+def check_process(process_file):
+    if process_file=='Process_Upload_running.txt':
+        return 0
+    elif 'OPEN_TASKS_UPDATE' in process_file:
+        project_name=process_file.split('_OPEN_TASKS_UPDATE_RUNNING')[0]
+        cmd = 'ps -aux | grep "api/cci/update_open_tasks.py" | grep "'+project_name+'"'
+    else:
+        project_name=process_file.split('_UPDATE_RUNNING')[0]
+        cmd = 'ps -aux | grep "api/cci/update.py" | grep "'+project_name+'"'
+    
+    try:
+        output = subprocess.check_output(cmd, stderr=subprocess.STDOUT, shell=True)
+        if len(output.split('\n'))>3:
+            #three because one is warning, two is the line we just do (ps -aux ...) and three is empty line
+            #there is a process running
+            return 0
+        else:
+            #no process, send an email
+            return 1
+    except (CalledProcessError,ValueError):
+        #error , send an email
+        return 1
+
+def check_crontab_job(UploadDir):
+    flag_files_list=list()
+    for files in os.listdir(os.path.join(UploadDir,'FlagFiles')):
+        print '   - Check '+files
+        #check if there is a process for this file, if not send a warning to the User
+        keep=check_process(files)
+        if keep:
+            print "    --> Process doesn't seem to be running. ERROR. Need to be checked."
+            flag_files_list.append(files)
+            
+    return flag_files_list
+            
 def Uploading_Assessor(xnat,assessor_path,ProjectName,Subject,Experiment,assessor_label):
     #SNAPSHOTS :
     #Check if the SNAPSHOTS folder exists, if not create one from PDF if pdf exists :
@@ -186,7 +261,7 @@ def Uploading_Assessor(xnat,assessor_path,ProjectName,Subject,Experiment,assesso
 def Uploading_OUTLOG(outlog_list,xnat):
     number_outlog=len(outlog_list)
     for index,outlogfile in enumerate(outlog_list):
-        print' *Uploading OUTLOG '+str(index+1)+'/'+str(number_outlog)+' -- File name: '+outlogfile
+        print'   *Uploading OUTLOG '+str(index+1)+'/'+str(number_outlog)+' -- File name: '+outlogfile
         #Get the Project Name, the subject label, the experiment label and the assessor label from the file name :
         labels=outlogfile.split('-x-')
         ProjectName=labels[0]
@@ -231,7 +306,7 @@ def Uploading_OUTLOG(outlog_list,xnat):
 def Uploading_PBS(pbs_list,xnat):
     number_pbs=len(pbs_list)
     for index,pbsfile in enumerate(pbs_list):
-        print' *Uploading PBS '+str(index+1)+'/'+str(number_pbs)+' -- File name: '+pbsfile
+        print'   *Uploading PBS '+str(index+1)+'/'+str(number_pbs)+' -- File name: '+pbsfile
         #Get the Project Name, the subject label, the experiment label and the assessor label from the file name :
         labels=pbsfile.split('-x-')
         ProjectName=labels[0]
@@ -300,13 +375,15 @@ def Upload_FreeSurfer(xnat,assessor_path,ProjectName,Subject,Experiment,assessor
     assessor=experiment.assessor(assessor_label)
     
     # Upload the XML
-    print '    +uploading XML'
-    xml_files_list = os.listdir(assessor_path+'/'+'XML')
-    if len(xml_files_list) != 1:
-    	print 'ERROR:cannot upload FreeSufer, unable to find XML file:'+assessor_path
-    	return
-    xml_path = assessor_path+'/XML/'+xml_files_list[0]
-    assessor.create(xml=xml_path, allowDataDeletion=False)
+    xmlpath=os.path.join(assessor_path,'XML')
+    if os.path.exists(xmlpath):
+        print '    +uploading XML'
+        xml_files_list = os.listdir(xmlpath)
+        if len(xml_files_list) != 1:
+        	print 'ERROR:cannot upload FreeSufer, unable to find XML file:'+assessor_path
+        	return
+        xml_path = assessor_path+'/XML/'+xml_files_list[0]
+        assessor.create(xml=xml_path, allowDataDeletion=False)
     
     #UPLOAD files :                
     Assessor_Resource_List=os.listdir(assessor_path)    
@@ -396,7 +473,9 @@ if __name__ == '__main__':
     
     #Email variables :
     send_an_email=0;
-    TEXT='\nThe following assessor already exists and the Spider try to upload files on existing files :\n'
+    flag_files_list=list()
+    warning_list=list()
+    TEXT=None
     
     print 'Time at the beginning of the Process_Upload: ', str(datetime.now()),'\n'
 
@@ -414,17 +493,21 @@ if __name__ == '__main__':
         sys.exit(1) 
     
     #make the two special directory
-    if not os.path.exists(UploadDir+'/OUTLOG'):
-        os.mkdir(UploadDir+'/OUTLOG')
-    if not os.path.exists(UploadDir+'/TRASH'):
-        os.mkdir(UploadDir+'/TRASH')
-    if not os.path.exists(UploadDir+'/PBS'):
-        os.mkdir(UploadDir+'/PBS')    
+    if not os.path.exists(UploadDir):
+        os.mkdir(UploadDir)
+    if not os.path.exists(os.path.join(UploadDir,'OUTLOG')):
+        os.mkdir(os.path.join(UploadDir,'OUTLOG'))
+    if not os.path.exists(os.path.join(UploadDir,'TRASH')):
+        os.mkdir(os.path.join(UploadDir,'TRASH'))
+    if not os.path.exists(os.path.join(UploadDir,'PBS')):
+        os.mkdir(os.path.join(UploadDir,'PBS'))
+    if not os.path.exists(os.path.join(UploadDir,'FlagFiles')):
+        os.mkdir(os.path.join(UploadDir,'FlagFiles'))
     
     #check if this spider is still running for the former called by checking the flagfile Spider_Process_Upload_running.txt
-    if not os.path.exists(UploadDir+'/Process_Upload_running.txt') and not os.path.exists(UploadDir+'/Spider_Process_Upload_running.txt'):
+    if not os.path.exists(os.path.join(UploadDir,'FlagFiles','Process_Upload_running.txt')):
         #create the flag file showing that the spider is running 
-        f=open(UploadDir+'/Process_Upload_running.txt', 'w')
+        f=open(os.path.join(UploadDir,'FlagFiles','Process_Upload_running.txt'), 'w')
         today=datetime.now()
         datestr="Date: "+str(today.year)+str(today.month)+str(today.day)+'_'+str(today.hour)+':'+str(today.minute)+':'+str(today.second)
         f.write(datestr+'\n')
@@ -510,8 +593,7 @@ if __name__ == '__main__':
                                             if not os.path.exists(assessor_path+'/ALREADY_SEND_EMAIL.txt'):
                                                 open(assessor_path+'/ALREADY_SEND_EMAIL.txt', 'w').close()
                                             print '  -->Data already present on XNAT.\n'
-                                            TEXT+='\t- Project : '+ProjectName+' / Subject : '+Subject+' / Experiment : '+Experiment+' / Assessor label : '+ assessor_label+'\n'
-                                            send_an_email=1
+                                            warning_list.append('\t- Project : '+ProjectName+' / Subject : '+Subject+' / Experiment : '+Experiment+' / Assessor label : '+ assessor_label+'\n')
                                         else:
                                             #set the status to Upload :
                                             if os.path.exists(os.path.join(assessor_path,'READY_TO_UPLOAD.txt')):
@@ -523,8 +605,7 @@ if __name__ == '__main__':
                                             if not os.path.exists(assessor_path+'/ALREADY_SEND_EMAIL.txt'):
                                                 open(assessor_path+'/ALREADY_SEND_EMAIL.txt', 'w').close()
                                             print 'Data already exist.\n'
-                                            TEXT+='\t- Project : '+ProjectName+' / Subject : '+Subject+' / Experiment : '+Experiment+' / Assessor label : '+ assessor_label+'\n'
-                                            send_an_email=1
+                                            warning_list.append('\t- Project : '+ProjectName+' / Subject : '+Subject+' / Experiment : '+Experiment+' / Assessor label : '+ assessor_label+'\n')
                                         else:
                                             #set the status to Upload :
                                             if os.path.exists(os.path.join(assessor_path,'READY_TO_UPLOAD.txt')):
@@ -536,20 +617,36 @@ if __name__ == '__main__':
                       
                     ################# 2) Upload the Outlog files ###############
                     #For each file, upload it to the OUTLOG resource on the assessor
+                    print ' - Uploading OUTLOG files ...'
                     Uploading_OUTLOG(outlog_list,xnat)
                     
-                    ################# 2) Upload the PBS files ###############
+                    ################# 3) Upload the PBS files ###############
                     #For each file, upload it to the PBS resource
+                    print ' - Uploading PBS files ...'
                     Uploading_PBS(pbs_list,xnat)
                     
+                    ################# 4) Check flagfile and process running ps -aux ################
+                    print ' - Checking process running ...'
+                    flag_files_list=check_crontab_job(UploadDir)
                     
                 #if fail, close the connection to xnat
                 finally:
                     #Sent an email
-                    if send_an_email and emailaddress!='':
-                        TEXT=TEXT+'\nYou should :\n\t-remove the assessor if you want to upload the data \n\t-set the status of the assessor to "uploading" \n\t-remove the data from the upload folder if you do not want to upload this data.\n'
-                        SUBJECT='SPider_Process_Upload -> Data already on Xnat'
-                        Spiders.sendMail(VUEMAIL_ADDR,VUEMAIL_PWS,emailaddress,SUBJECT,TEXT,'smtp.gmail.com')   
+                    if (warning_list or flag_files_list)  and emailaddress!='' :
+                        if warning_list:
+                            TEXT='\nThe following assessor already exists and the Spider try to upload files on existing files :\n'
+                            for warning in warning_list:
+                                TEXT+=' - '+warning+'\n'
+                            TEXT+='\nYou should :\n\t-remove the assessor if you want to upload the data \n\t-set the status of the assessor to "uploading" \n\t-remove the data from the upload folder if you do not want to upload this data.\n'
+                        SUBJECT='ERROR/WARNING: XNAT Process Upload'
+                        if flag_files_list:
+                            if not TEXT:
+                                TEXT='\nCheck the following processes if they are still running:\n'
+                            else:
+                                TEXT+='Check the following process if they are still running:\n'
+                            for files in flag_files_list:
+                                TEXT+=' - '+files+'\n'
+                        sendMail(VUEMAIL_ADDR,VUEMAIL_PWS,emailaddress,SUBJECT,TEXT,'smtp.gmail.com')   
                         
                     #disconnect                                     
                     xnat.disconnect()
@@ -558,7 +655,7 @@ if __name__ == '__main__':
         #Stop the process before the end or end of the script, remove the flagfile for the spider running 
         finally:
             #remove flagfile
-            os.remove(UploadDir+'/Process_Upload_running.txt')
+            os.remove(os.path.join(UploadDir,'FlagFiles','Process_Upload_running.txt'))
             print '===================================================================\n'
     else:
         print 'WARNING: Upload already running.'

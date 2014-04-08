@@ -45,7 +45,7 @@ class SpiderProcessHandler:
 
     def add_pdf(self,filepath):
         #check if the file exists:
-        if not os.path.exists(filepath):
+        if not os.path.exists(filepath.strip()):
             self.error=1
             print 'ERROR: file '+filepath+' does not exists.'
         else:
@@ -70,7 +70,7 @@ class SpiderProcessHandler:
 
     def add_snapshot(self,snapshot):
         #check if the file exists:
-        if not os.path.exists(snapshot):
+        if not os.path.exists(snapshot.strip()):
             self.error=1
             print 'ERROR: file '+snapshot+' does not exists.'
         else:
@@ -83,7 +83,7 @@ class SpiderProcessHandler:
 
     def add_file(self,filePath,Resource):
         #check if the file exists:
-        if not os.path.exists(filePath):
+        if not os.path.exists(filePath.strip()):
             self.error=1
             print 'ERROR: file '+filePath+' does not exists.'
         else:
@@ -96,7 +96,7 @@ class SpiderProcessHandler:
 
     def add_folder(self,FolderPath,ResourceName='nan'):
         #check if the folder exists:
-        if not os.path.exists(FolderPath):
+        if not os.path.exists(FolderPath.strip()):
             self.error=1
             print 'ERROR: folder '+FolderPath+' does not exists.'
         else:
