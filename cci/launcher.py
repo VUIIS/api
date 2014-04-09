@@ -254,7 +254,7 @@ class Launcher(object):
             # Modules - run
             for sess_mod in sess_mod_list:
                 print'      * Module: '+sess_mod.getname()
-                if (sess_mod.needs_run(sess, xnat)):
+                if (sess_mod.needs_run(sess_info, xnat)):
                     sess_mod.run(xnat,proj_id,subj_label,sess_label)
                 
             for scan in scan_list:
