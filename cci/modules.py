@@ -16,6 +16,9 @@ class Module(object):
         self.Text_report=Text_report
         self.send_an_email=0
         
+    def needs_run(self):
+        raise NotImplementedError()
+        
     def prerun():
         raise NotImplementedError()
     

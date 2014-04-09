@@ -254,16 +254,18 @@ class Launcher(object):
             # Modules - run
             for sess_mod in sess_mod_list:
                 print'      * Module: '+sess_mod.getname()
-                sess_mod.run(xnat,proj_id,subj_label,sess_label)
+                if (sess_mod.needs_run(sess, xnat)):
+                    sess_mod.run(xnat,proj_id,subj_label,sess_label)
                 
             for scan in scan_list:
                 print'      +SCAN: '+scan['scan_id']
                 for scan_mod in scan_mod_list:
                     print'        * Module: '+scan_mod.getname()
-                    scan_mod.run(xnat,proj_id, subj_label, sess_label, scan['scan_id'])
+                    if (scan_mod.needs_run(scan, xnat)):
+                        scan_mod.run(xnat,proj_id, subj_label, sess_label, scan['scan_id'])
         
             # Processors - get list of tasks
-            for sess_proc in sess_proc_list:       
+            for sess_proc in sess_proc_list:
                 if sess_proc.should_run(sess_info, xnat):
                     sess_task = sess_proc.get_task(xnat, sess_info, self.upload_dir)
                     task_list.append(sess_task)
@@ -273,7 +275,9 @@ class Launcher(object):
                     if scan_proc.should_run(scan_info):
                         scan_task = scan_proc.get_task(xnat, scan_info, self.upload_dir)
                         task_list.append(scan_task)
-              
+                        
+            print('    DEBUG:Getting list of processors')
+
             # Processors - update tasks                   
             for cur_task in task_list:
                 print(' Updating task:'+cur_task.assessor_label)
