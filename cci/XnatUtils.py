@@ -5,7 +5,9 @@ import os, sys, shutil
 from datetime import datetime
 import redcap
 
-#Class JobHandler to copy file after the end of a Job
+####################################################################################
+#            Class JobHandler to copy file after the end of a Job                  #
+####################################################################################   
 class SpiderProcessHandler:
     def __init__(self,ProcessName,project,subject,experiment,scan=''):
         #set the email env to send the email if a job fail
@@ -151,6 +153,17 @@ class SpiderProcessHandler:
         if self.finish and not self.error:
             #Remove the data
             shutil.rmtree(directory)
+            
+####################################################################################
+#                       Access XNAT and list of XNAT Objs                          #
+####################################################################################    
+def get_interface():
+    # Environs
+    user = os.environ['XNAT_USER']
+    pwd = os.environ['XNAT_PASS']
+    host = os.environ['XNAT_HOST']
+    # Don't sys.exit, let callers catch KeyErrors
+    return Interface(host, user, pwd)
 
 def list_subjects(intf, projectid=None):
     if projectid:
@@ -288,6 +301,69 @@ def list_assessors(intf, projectid, subjectid, experimentid):
 
     return new_list
 
+def list_project_assessors(intf, projectid):
+    new_list = []
+        
+    # First get FreeSurfer
+    post_uri = '/REST/archive/experiments'
+    post_uri += '?project='+projectid
+    post_uri += '&xsiType=fs:fsdata'
+    post_uri += '&columns=ID,label,URI,xsiType,project'
+    post_uri += ',xnat:imagesessiondata/subject_id,xnat:imagesessiondata/id'
+    post_uri += ',xnat:imagesessiondata/label,URI,fs:fsData/procstatus'
+    post_uri += ',fs:fsData/validation/status'
+    assessor_list = intf._get_json(post_uri)
+
+    for a in assessor_list:
+        anew = {}
+        anew['ID'] = a['ID']
+        anew['label'] = a['label']
+        anew['uri'] = a['URI']
+        anew['assessor_id'] = a['ID']
+        anew['assessor_label'] = a['label']
+        anew['assessor_uri'] = a['URI']
+        anew['project_id'] = projectid
+        anew['project_label'] = projectid
+        anew['subject_id'] = a['xnat:imagesessiondata/subject_id']
+        anew['session_id'] = a['session_ID']
+        anew['session_label'] = a['session_label']
+        anew['procstatus'] = a['fs:fsdata/procstatus']
+        anew['qcstatus'] = a['fs:fsdata/validation/status']
+        anew['proctype'] = 'FreeSurfer'
+        anew['xsiType'] = a['xsiType']
+        new_list.append(anew)
+
+    # Then add genProcData    
+    post_uri = '/REST/archive/experiments'
+    post_uri += '?project='+projectid
+    post_uri += '&xsiType=proc:genprocdata'
+    post_uri += '&columns=ID,label,URI,xsiType,project'
+    post_uri += ',xnat:imagesessiondata/subject_id,xnat:imagesessiondata/id'
+    post_uri += ',xnat:imagesessiondata/label,proc:genprocdata/procstatus'
+    post_uri += ',proc:genprocdata/proctype,proc:genprocdata/validation/status'
+    assessor_list = intf._get_json(post_uri)
+
+    for a in assessor_list:
+        anew = {}
+        anew['ID'] = a['ID']
+        anew['label'] = a['label']
+        anew['uri'] = a['URI']
+        anew['assessor_id'] = a['ID']
+        anew['assessor_label'] = a['label']
+        anew['assessor_uri'] = a['URI']
+        anew['project_id'] = projectid
+        anew['project_label'] = projectid
+        anew['subject_id'] = a['xnat:imagesessiondata/subject_id']
+        anew['session_id'] = a['session_ID']
+        anew['session_label'] = a['session_label']
+        anew['procstatus'] = a['proc:genprocdata/procstatus']
+        anew['proctype'] = a['proc:genprocdata/proctype']
+        anew['qcstatus'] = a['proc:genprocdata/validation/status']
+        anew['xsiType'] = a['xsiType']
+        new_list.append(anew)
+
+    return new_list
+
 def list_assessor_out_resources(intf, projectid, subjectid, experimentid, assessorid):
     post_uri = '/REST/projects/'+projectid+'/subjects/'+subjectid+'/experiments/'+experimentid+'/assessors/'+assessorid+'/out/resources'
     resource_list = intf._get_json(post_uri)
@@ -321,9 +397,33 @@ def get_full_object(intf,obj_dict):
 def get_assessor(xnat,projid,subjid,sessid,assrid):
     assessor = xnat.select('/projects/'+projid+'/subjects/'+subjid+'/experiments/'+sessid+'/assessors/'+assrid)
     return assessor
+    
+def get_resource_lastdate_modified(xnat,resource):
+    # xpaths for times in resource xml
+    CREATED_XPATH = "/cat:Catalog/cat:entries/cat:entry/@createdTime"
+    MODIFIED_XPATH = "/cat:Catalog/cat:entries/cat:entry/@modifiedTime"
+    
+    # Get the resource object and its uri
+    res_xml_uri = resource._uri+'?format=xml'
+    
+    # Get the XML for resource
+    xmlstr = xnat._exec(res_xml_uri, 'GET')
+    
+    # Parse out the times
+    root = etree.fromstring(xmlstr)
+    create_times = root.xpath(CREATED_XPATH, namespaces=root.nsmap)
+    mod_times = root.xpath(MODIFIED_XPATH, namespaces=root.nsmap)
+    
+    # Find the most recent time
+    all_times = create_times + mod_times
+    max_time = max(all_times)
+    date = max_time.split('.')[0]
+    return date.split('T')[0].replace('-','')+date.split('T')[1].replace(':','')
 
 
-###### Download functions ######
+####################################################################################
+#                     Download resources XNAT (Scan/Assessor)                      #
+#################################################################################### 
 ## from a scan given, download the resources
 def download_Scan(Outputdirectory,projectName,subject,experiment,scan,resource_list,all_resources=0):
     """ Download resources from a specific project/subject/experiment/scan from Xnat into a folder.
@@ -643,16 +743,7 @@ def upload_zip(Resource,directory):
     Resource.put_zip(directory+'/'+filenameZip,extract=True)
     #return to the initial directory:
     os.chdir(initDir)
-
-def clean_directory(folder_name):
-    files=os.listdir(folder_name)
-    for f in files:
-        if os.path.isdir(folder_name+'/'+f)==False:
-            os.remove(folder_name+'/'+f)
-        else:
-            shutil.rmtree(folder_name+'/'+f)
-    return 0
-
+    
 def download_resource_assessor(directory,xnat,project,subject,experiment,assessor_label,resources_list,quiet):
     """ Download the resources from the list for the assessor given in the argument (if resource_list[0]='all' -> download all)"""
 
@@ -743,7 +834,21 @@ def download_resource_assessor(directory,xnat,project,subject,experiment,assesso
 
     print'\n'
 
+####################################################################################
+#                                 Useful Functions                                 #
+#################################################################################### 
+def clean_directory(folder_name):
+    files=os.listdir(folder_name)
+    for f in files:
+        if os.path.isdir(folder_name+'/'+f)==False:
+            os.remove(folder_name+'/'+f)
+        else:
+            shutil.rmtree(folder_name+'/'+f)
+    return 0
 
+####################################################################################
+#                           Save in REDCap jobs running                            #
+#################################################################################### 
 #function to send the data to the VUIIS XNAT Jobs redcap project about what is running
 def save_job_redcap(data,record_id):
     try:
@@ -805,74 +910,3 @@ def pi_from_project(project):
     finally:
         xnat.disconnect()
         return pi
-
-def get_interface():
-    # Environs
-    user = os.environ['XNAT_USER']
-    pwd = os.environ['XNAT_PASS']
-    host = os.environ['XNAT_HOST']
-    # Don't sys.exit, let callers catch KeyErrors
-    return Interface(host, user, pwd)
-
-def list_project_assessors(intf, projectid):
-    new_list = []
-        
-    # First get FreeSurfer
-    post_uri = '/REST/archive/experiments'
-    post_uri += '?project='+projectid
-    post_uri += '&xsiType=fs:fsdata'
-    post_uri += '&columns=ID,label,URI,xsiType,project'
-    post_uri += ',xnat:imagesessiondata/subject_id,xnat:imagesessiondata/id'
-    post_uri += ',xnat:imagesessiondata/label,URI,fs:fsData/procstatus'
-    post_uri += ',fs:fsData/validation/status'
-    assessor_list = intf._get_json(post_uri)
-
-    for a in assessor_list:
-        anew = {}
-        anew['ID'] = a['ID']
-        anew['label'] = a['label']
-        anew['uri'] = a['URI']
-        anew['assessor_id'] = a['ID']
-        anew['assessor_label'] = a['label']
-        anew['assessor_uri'] = a['URI']
-        anew['project_id'] = projectid
-        anew['project_label'] = projectid
-        anew['subject_id'] = a['xnat:imagesessiondata/subject_id']
-        anew['session_id'] = a['session_ID']
-        anew['session_label'] = a['session_label']
-        anew['procstatus'] = a['fs:fsdata/procstatus']
-        anew['qcstatus'] = a['fs:fsdata/validation/status']
-        anew['proctype'] = 'FreeSurfer'
-        anew['xsiType'] = a['xsiType']
-        new_list.append(anew)
-
-    # Then add genProcData    
-    post_uri = '/REST/archive/experiments'
-    post_uri += '?project='+projectid
-    post_uri += '&xsiType=proc:genprocdata'
-    post_uri += '&columns=ID,label,URI,xsiType,project'
-    post_uri += ',xnat:imagesessiondata/subject_id,xnat:imagesessiondata/id'
-    post_uri += ',xnat:imagesessiondata/label,proc:genprocdata/procstatus'
-    post_uri += ',proc:genprocdata/proctype,proc:genprocdata/validation/status'
-    assessor_list = intf._get_json(post_uri)
-
-    for a in assessor_list:
-        anew = {}
-        anew['ID'] = a['ID']
-        anew['label'] = a['label']
-        anew['uri'] = a['URI']
-        anew['assessor_id'] = a['ID']
-        anew['assessor_label'] = a['label']
-        anew['assessor_uri'] = a['URI']
-        anew['project_id'] = projectid
-        anew['project_label'] = projectid
-        anew['subject_id'] = a['xnat:imagesessiondata/subject_id']
-        anew['session_id'] = a['session_ID']
-        anew['session_label'] = a['session_label']
-        anew['procstatus'] = a['proc:genprocdata/procstatus']
-        anew['proctype'] = a['proc:genprocdata/proctype']
-        anew['qcstatus'] = a['proc:genprocdata/validation/status']
-        anew['xsiType'] = a['xsiType']
-        new_list.append(anew)
-
-    return new_list
