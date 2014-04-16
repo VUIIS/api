@@ -220,20 +220,15 @@ def Uploading_Assessor(xnat,assessor_path,ProjectName,Subject,Experiment,assesso
             if Resource=='SNAPSHOTS':
                 #for each files in this folderl, Upload files in the resource :
                 Resource_files_list=os.listdir(Resource_path)
-                #for each folder=resource in the assessor directory 
-                for filename in Resource_files_list:
-                    #if it's a folder, zip it and upload it
-                    if os.path.isdir(filename):
-                        upload_zip(filename,Resource_path+'/'+filename,r)
-                    #if it's the preview snapshot
-                    elif os.path.splitext(filename)[0]=='preview':
-                        r.file(filename).put(Resource_path+'/'+filename,(filename.split('.')[1]).upper(),'THUMBNAIL')
-                    #if it's the original snapshot
-                    elif len(filename.split('original'))>1:
-                        r.file(filename).put(Resource_path+'/'+filename,(filename.split('.')[1]).upper(),'ORIGINAL')
-                    else:
-                        #upload the file
-                        r.file(filename).put(Resource_path+'/'+filename)
+                preview = [s for s in Resource_files_list if "preview" in s][0]
+                r.file(preview).put(Resource_path+'/'+preview,(preview.split('.')[1]).upper(),'THUMBNAIL')
+                os.remove(Resource_path+'/'+preview)
+                original = [s for s in Resource_files_list if "original" in s][0]
+                r.file(original).put(Resource_path+'/'+original,(original.split('.')[1]).upper(),'ORIGINAL')
+                os.remove(Resource_path+'/'+original)
+                if len(Resource_files_list)>2:
+                    upload_zip(Resource,Resource_path,r)
+                    
             #for all the other resources :
             else:
                 #for each files in this folderl, Upload files in the resource :
@@ -405,25 +400,15 @@ def Upload_FreeSurfer(xnat,assessor_path,ProjectName,Subject,Experiment,assessor
             if Resource=='SNAPSHOTS':
                 #for each files in this folderl, Upload files in the resource :
                 Resource_files_list=os.listdir(Resource_path)
-                #for each folder=resource in the assessor directory 
-                for filename in Resource_files_list:
-                    #if it's a folder, zip it and upload it
-                    if filename.lower().endswith('.zip'):
-                    	r.put_zip(Resource_path+'/'+filename, extract=True)
-                    elif os.path.isdir(filename):
-                        filenameZip=filename+'.zip'
-                        os.system('zip '+filenameZip+' '+Resource_path+'/'+filename+'/*')
-                        #upload
-                        r.put_zip(Resource_path+'/'+filenameZip,extract=True)
-                    #if it's the preview snapshot
-                    elif os.path.splitext(filename)[0]=='preview':
-                        r.file(filename).put(Resource_path+'/'+filename,(filename.split('.')[1]).upper(),'THUMBNAIL')
-                    #if it's the original snapshot
-                    elif len(filename.split('original'))>1:
-                        r.file(filename).put(Resource_path+'/'+filename,(filename.split('.')[1]).upper(),'ORIGINAL')
-                    else:
-                        #upload the file
-                        r.file(filename).put(Resource_path+'/'+filename)
+                preview = [s for s in Resource_files_list if "preview" in s][0]
+                r.file(preview).put(os.path.join(Resource_path,preview),(preview.split('.')[1]).upper(),'THUMBNAIL')
+                os.remove(os.path.join(Resource_path,preview))
+                original = [s for s in Resource_files_list if "original" in s][0]
+                r.file(original).put(os.path.join(Resource_path,original),(original.split('.')[1]).upper(),'ORIGINAL')
+                os.remove(os.path.join(Resource_path,original))
+                if len(Resource_files_list)>2:
+                    upload_zip(Resource,Resource_path,r)
+                    
             #for all the other resources :
             else:
                 #for each files in this folderl, Upload files in the resource :
