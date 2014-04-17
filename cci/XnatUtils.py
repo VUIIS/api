@@ -247,6 +247,11 @@ def list_scan_resources(intf, projectid, subjectid, experimentid, scanid):
     post_uri = '/REST/projects/'+projectid+'/subjects/'+subjectid+'/experiments/'+experimentid+'/scans/'+scanid+'/resources'
     resource_list = intf._get_json(post_uri)
     return resource_list
+    
+def list_experiment_resources(intf, projectid, subjectid, experimentid):
+    post_uri = '/REST/projects/'+projectid+'/subjects/'+subjectid+'/experiments/'+experimentid+'/resources'
+    resource_list = intf._get_json(post_uri)
+    return resource_list
 
 def list_assessors(intf, projectid, subjectid, experimentid):
     new_list = []
