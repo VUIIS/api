@@ -259,30 +259,29 @@ def list_project_scans(intf, projectid):
     new_list = []
 
     for s in scan_list:
-        if s['ID'] == experimentid or s['label'] == experimentid:
-            snew = {}
-            snew['scan_id']      = s['xnat:imagescandata/id']
-            snew['scan_label']   = s['xnat:imagescandata/id']
-            snew['scan_quality'] = s['xnat:imagescandata/quality']
-            snew['scan_note']    = s['xnat:imagescandata/note']
-            snew['scan_frames']  = s['xnat:imagescandata/frames']
-            snew['scan_description'] = s['xnat:imagescandata/series_description']
-            snew['scan_type']    = s['xnat:imagescandata/type']
-            snew['ID']           = s['xnat:imagescandata/id']
-            snew['label']        = s['xnat:imagescandata/id']
-            snew['quality']      = s['xnat:imagescandata/quality']
-            snew['note']         = s['xnat:imagescandata/note']
-            snew['frames']       = s['xnat:imagescandata/frames']
-            snew['series_description'] = s['xnat:imagescandata/series_description']
-            snew['type']         = s['xnat:imagescandata/type']
-            snew['project_id'] = projectid
-            snew['project_label'] = projectid
-            snew['subject_id'] = s['xnat:imagesessiondata/subject_id']
-            snew['subject_label'] = s['subject_label']
-            snew['session_id'] = s['ID']
-            snew['session_label'] = s['label']
-            snew['session_uri'] = s['URI']
-            new_list.append(snew)
+        snew = {}
+        snew['scan_id']      = s['xnat:imagescandata/id']
+        snew['scan_label']   = s['xnat:imagescandata/id']
+        snew['scan_quality'] = s['xnat:imagescandata/quality']
+        snew['scan_note']    = s['xnat:imagescandata/note']
+        snew['scan_frames']  = s['xnat:imagescandata/frames']
+        snew['scan_description'] = s['xnat:imagescandata/series_description']
+        snew['scan_type']    = s['xnat:imagescandata/type']
+        snew['ID']           = s['xnat:imagescandata/id']
+        snew['label']        = s['xnat:imagescandata/id']
+        snew['quality']      = s['xnat:imagescandata/quality']
+        snew['note']         = s['xnat:imagescandata/note']
+        snew['frames']       = s['xnat:imagescandata/frames']
+        snew['series_description'] = s['xnat:imagescandata/series_description']
+        snew['type']         = s['xnat:imagescandata/type']
+        snew['project_id'] = projectid
+        snew['project_label'] = projectid
+        snew['subject_id'] = s['xnat:imagesessiondata/subject_id']
+        snew['subject_label'] = s['subject_label']
+        snew['session_id'] = s['ID']
+        snew['session_label'] = s['label']
+        snew['session_uri'] = s['URI']
+        new_list.append(snew)
 
     return new_list
 
