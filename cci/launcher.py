@@ -257,12 +257,16 @@ class Launcher(object):
                 if (sess_mod.needs_run(sess_info, xnat)):
                     sess_mod.run(xnat,proj_id,subj_label,sess_label)
                 
-            for scan in scan_list:
-                print'      +SCAN: '+scan['scan_id']
+            for scan_info in scan_list:
+                print'      +SCAN: '+scan_info['scan_id']
+                scan_obj = None
                 for scan_mod in scan_mod_list:
                     print'        * Module: '+scan_mod.getname()
-                    if (scan_mod.needs_run(scan, xnat)):
-                        scan_mod.run(xnat,proj_id, subj_label, sess_label, scan['scan_id'])
+                    if (scan_mod.needs_run(scan_info, xnat)):
+                        if scan_obj == None:
+                            scan_obj = XnatUtils.get_full_object(xnat, scan_info)
+                            
+                        scan_mod.run(scan_info, scan_obj)
         
             # Processors - get list of tasks
             for sess_proc in sess_proc_list:
