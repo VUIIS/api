@@ -255,7 +255,7 @@ class Launcher(object):
             for sess_mod in sess_mod_list:
                 print'      * Module: '+sess_mod.getname()
                 if (sess_mod.needs_run(sess_info, xnat)):
-                    sess_mod.run(xnat,proj_id,subj_label,sess_label)
+                    sess_mod.run(sess_info, sess_obj)
                 
             for scan_info in scan_list:
                 print'      +SCAN: '+scan_info['scan_id']
