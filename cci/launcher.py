@@ -225,10 +225,12 @@ class Launcher(object):
                 print(' +Subject:'+subject['label']+': skipping, last_mod='+str(last_mod)+',last_up='+str(last_up))
                 continue
             
-            print(' +Subject:'+subject['label']+': updating...')
+            print(' +Subject:'+subject['label']+': updating:'+str(datetime.now()))
             # NOTE: we set update time here, so if the subject is changed below it will be checked again      
             self.set_subj_lastupdate(XnatUtils.get_full_object(xnat, subject))
             self.update_subject(xnat, subject, exp_proc_list, scan_proc_list, exp_mod_list, scan_mod_list)
+        
+        print('Finished updating subjects:'+str(datetime.now()))
             
         # Modules after run
         if project_id in self.project_modules_dict:
