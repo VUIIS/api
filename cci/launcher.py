@@ -254,7 +254,11 @@ class Launcher(object):
             # Modules - run
             for sess_mod in sess_mod_list:
                 print'      * Module: '+sess_mod.getname()
+                sess_obj = None
                 if (sess_mod.needs_run(sess_info, xnat)):
+                    if sess_obj == None:
+                        sess_obj = XnatUtils.get_full_object(xnat, sess_info)
+                            
                     sess_mod.run(sess_info, sess_obj)
                 
             for scan_info in scan_list:
