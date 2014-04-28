@@ -225,10 +225,12 @@ class Launcher(object):
                 print(' +Subject:'+subject['label']+': skipping, last_mod='+str(last_mod)+',last_up='+str(last_up))
                 continue
             
-            print(' +Subject:'+subject['label']+': updating...')
+            print(' +Subject:'+subject['label']+': updating:'+str(datetime.now()))
             # NOTE: we set update time here, so if the subject is changed below it will be checked again      
             self.set_subj_lastupdate(XnatUtils.get_full_object(xnat, subject))
             self.update_subject(xnat, subject, exp_proc_list, scan_proc_list, exp_mod_list, scan_mod_list)
+        
+        print('Finished updating subjects:'+str(datetime.now()))
             
         # Modules after run
         if project_id in self.project_modules_dict:
@@ -254,16 +256,26 @@ class Launcher(object):
             # Modules - run
             for sess_mod in sess_mod_list:
                 print'      * Module: '+sess_mod.getname()
-                sess_mod.run(xnat,proj_id,subj_label,sess_label)
+                sess_obj = None
+                if (sess_mod.needs_run(sess_info, xnat)):
+                    if sess_obj == None:
+                        sess_obj = XnatUtils.get_full_object(xnat, sess_info)
+                            
+                    sess_mod.run(sess_info, sess_obj)
                 
-            for scan in scan_list:
-                print'      +SCAN: '+scan['scan_id']
+            for scan_info in scan_list:
+                print'      +SCAN: '+scan_info['scan_id']
+                scan_obj = None
                 for scan_mod in scan_mod_list:
                     print'        * Module: '+scan_mod.getname()
-                    scan_mod.run(xnat,proj_id, subj_label, sess_label, scan['scan_id'])
+                    if (scan_mod.needs_run(scan_info, xnat)):
+                        if scan_obj == None:
+                            scan_obj = XnatUtils.get_full_object(xnat, scan_info)
+                            
+                        scan_mod.run(scan_info, scan_obj)
         
             # Processors - get list of tasks
-            for sess_proc in sess_proc_list:       
+            for sess_proc in sess_proc_list:
                 if sess_proc.should_run(sess_info, xnat):
                     sess_task = sess_proc.get_task(xnat, sess_info, self.upload_dir)
                     task_list.append(sess_task)
@@ -273,7 +285,9 @@ class Launcher(object):
                     if scan_proc.should_run(scan_info):
                         scan_task = scan_proc.get_task(xnat, scan_info, self.upload_dir)
                         task_list.append(scan_task)
-              
+                        
+            print('    DEBUG:Getting list of processors')
+
             # Processors - update tasks                   
             for cur_task in task_list:
                 print(' Updating task:'+cur_task.assessor_label)

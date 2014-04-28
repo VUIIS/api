@@ -4,6 +4,7 @@ from pyxnat import Interface
 import os, sys, shutil
 from datetime import datetime
 import redcap
+from lxml import etree
 
 ####################################################################################
 #            Class JobHandler to copy file after the end of a Job                  #
@@ -182,6 +183,9 @@ def list_subjects(intf, projectid=None):
 
     return subject_list
 
+def list_sessions(intf, projectid=None, subjectid=None):
+    return list_experiments(intf, projectid, subjectid)
+
 def list_experiments(intf, projectid=None, subjectid=None):
     if projectid and subjectid:
         post_uri = '/REST/projects/'+projectid+'/subjects/'+subjectid+'/experiments'
@@ -195,10 +199,15 @@ def list_experiments(intf, projectid=None, subjectid=None):
     post_uri += '?columns=ID,URI,subject_label,subject_ID,modality,project,date,xsiType,label,xnat:subjectdata/meta/last_modified'
     experiment_list = intf._get_json(post_uri)
 
-    # Override the project returned to be the one we queried
+    # Override the project returned to be the one we queried and add others for convenience
     if (projectid != None):
         for e in experiment_list:
             e['project'] = projectid
+            e['project_id'] = projectid
+            e['project_label'] = projectid
+            e['subject_id'] = e['subject_ID'] 
+            e['session_id'] = e['ID']
+            e['session_label'] = e['label']
 
     return experiment_list
 
