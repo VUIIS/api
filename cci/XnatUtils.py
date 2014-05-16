@@ -97,13 +97,13 @@ class SpiderProcessHandler:
             print'  -Copying '+Resource+': '+filePath+' to '+self.dir
             os.system('cp '+filePath+' '+self.dir+'/'+Resource+'/')
 
-    def add_folder(self,FolderPath,ResourceName='nan'):
+    def add_folder(self,FolderPath,ResourceName=None):
         #check if the folder exists:
         if not os.path.exists(FolderPath.strip()):
             self.error=1
             print 'ERROR: folder '+FolderPath+' does not exists.'
         else:
-            if ResourceName!='nan':
+            if ResourceName != None:
                 #make the resource folder
                 if not os.path.exists(self.dir+'/'+ResourceName):
                     os.mkdir(self.dir+'/'+ResourceName)
@@ -176,15 +176,16 @@ def list_subjects(intf, projectid=None):
 
     subject_list = intf._get_json(post_uri)
 
-    # Override the project returned to be the one we queried
-    if (projectid != None):
-        for s in subject_list:
+    for s in subject_list:
+        if (projectid != None):
+            # Override the project returned to be the one we queried
             s['project'] = projectid
 
-    return subject_list
+        s['project_id'] = s['project']
+        s['project_label'] = s['project']
+        s['last_updated'] = s['src']
 
-def list_sessions(intf, projectid=None, subjectid=None):
-    return list_experiments(intf, projectid, subjectid)
+    return subject_list
 
 def list_experiments(intf, projectid=None, subjectid=None):
     if projectid and subjectid:
@@ -199,17 +200,46 @@ def list_experiments(intf, projectid=None, subjectid=None):
     post_uri += '?columns=ID,URI,subject_label,subject_ID,modality,project,date,xsiType,label,xnat:subjectdata/meta/last_modified'
     experiment_list = intf._get_json(post_uri)
 
-    # Override the project returned to be the one we queried and add others for convenience
-    if (projectid != None):
-        for e in experiment_list:
+    for e in experiment_list:
+        if (projectid != None):
+            # Override the project returned to be the one we queried and add others for convenience
             e['project'] = projectid
-            e['project_id'] = projectid
-            e['project_label'] = projectid
-            e['subject_id'] = e['subject_ID'] 
-            e['session_id'] = e['ID']
-            e['session_label'] = e['label']
+            
+        e['subject_id'] = e['subject_ID'] 
+        e['session_id'] = e['ID']
+        e['session_label'] = e['label']
+        e['project_id'] = e['project']
+        e['project_label'] = e['project']
 
     return experiment_list
+
+def list_sessions(intf, projectid=None, subjectid=None):
+    if projectid and subjectid:
+        post_uri = '/REST/projects/'+projectid+'/subjects/'+subjectid+'/experiments'
+    elif projectid == None and subjectid == None:
+        post_uri = '/REST/experiments'
+    elif projectid and subjectid == None:
+        post_uri = '/REST/projects/'+projectid+'/experiments'
+    else:
+        return None
+
+    post_uri += '?columns=ID,URI,subject_label,subject_ID,modality,project,date,xsiType,label,xnat:imagesessiondata/meta/last_modified,xnat:imagesessiondata/original'
+    sess_list = intf._get_json(post_uri)
+
+    for sess in sess_list:
+        # Override the project returned to be the one we queried
+        if (projectid != None):
+            sess['project'] = projectid
+            
+        sess['project_id'] = sess['project']
+        sess['project_label'] = sess['project']
+        sess['subject_id'] = sess['subject_ID'] 
+        sess['session_id'] = sess['ID']
+        sess['session_label'] = sess['label']
+        sess['last_modified'] = sess['xnat:imagesessiondata/meta/last_modified']
+        sess['last_updated'] = sess['xnat:imagesessiondata/original']
+
+    return sess_list
 
 def list_scans(intf, projectid, subjectid, experimentid):
     post_uri = '/REST/projects/'+projectid+'/subjects/'+subjectid+'/experiments'
