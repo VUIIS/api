@@ -210,9 +210,6 @@ class Launcher(object):
         exp_mod_list, scan_mod_list = [],[]
         exp_proc_list, scan_proc_list = [],[]
         
-        # TODO: remove this after we are all projects have been updated to use the session field for last_updated
-        self.lastupdated_subj2sess(xnat, project_id)
-        
         #Modules prerun
         print('  *Modules Prerun')
         self.module_prerun(project_id, lockfile_prefix)
