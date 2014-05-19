@@ -228,7 +228,7 @@ class Launcher(object):
             else: 
                 print('  +Session:'+sess_info['label']+': updating...')
                 # NOTE: we set update time here, so if the sess is changed below it will be checked again    
-                self.set_session_lastupdated(XnatUtils.get_full_object(xnat, sess_info))
+                self.set_session_lastupdated(xnat, sess_info)
                 self.update_session(xnat, sess_info, exp_proc_list, scan_proc_list, exp_mod_list, scan_mod_list)        
             
         # Modules after run
@@ -344,10 +344,13 @@ class Launcher(object):
         else:
             return datetime.strptime(update_time, UPDATE_FORMAT)
 
-    def set_session_lastupdated(self, sess):
+    def set_session_lastupdated(self, xnat, sess_info):
         # We set update to one minute into the future since setting update field will change last modified time
         now = (datetime.now() + timedelta(minutes=1)).strftime(UPDATE_FORMAT)
-        sess.attrs.set('xnat:imagesessiondata/original', UPDATE_PREFIX+now)      
+        print('DEBUG:setting last_updated for:'+sess_info['label']+' to '+now)
+        sess_obj = XnatUtils.get_full_object(xnat, sess_info)
+        xsi_type = sess_info['xsiType']
+        sess_obj.attrs.set(xsi_type+'/original', UPDATE_PREFIX+now)      
      
     # TODO: remove this after we are all projects have been updated to use the session field for last_updated               
     def lastupdated_subj2sess(self): 
@@ -370,7 +373,7 @@ class Launcher(object):
                         for sess_info in XnatUtils.list_sessions(xnat, subj_info['project'], subj_info['ID']):
                             if sess_info['last_updated'] == '':
                                 print('  +Session:'+sess_info['label']+': subject up to date, setting update time to now')
-                                self.set_session_last_updated(XnatUtils.get_full_object(xnat, sess_info))       
+                                self.set_session_last_updated(xnat, sess_info)       
                                            
         finally:  
                 xnat.disconnect()
