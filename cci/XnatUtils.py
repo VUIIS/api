@@ -214,6 +214,9 @@ def list_experiments(intf, projectid=None, subjectid=None):
     return experiment_list
 
 def list_sessions(intf, projectid=None, subjectid=None):
+    type_list = []
+    full_sess_list = []
+    
     if projectid and subjectid:
         post_uri = '/REST/projects/'+projectid+'/subjects/'+subjectid+'/experiments'
     elif projectid == None and subjectid == None:
@@ -222,24 +225,37 @@ def list_sessions(intf, projectid=None, subjectid=None):
         post_uri = '/REST/projects/'+projectid+'/experiments'
     else:
         return None
-
-    post_uri += '?columns=ID,URI,subject_label,subject_ID,modality,project,date,xsiType,label,xnat:imagesessiondata/meta/last_modified,xnat:imagesessiondata/original'
+    
+    # First get a list of all experiment types
+    post_uri_types = post_uri+'?columns=xsiType'
     sess_list = intf._get_json(post_uri)
-
     for sess in sess_list:
-        # Override the project returned to be the one we queried
-        if (projectid != None):
-            sess['project'] = projectid
-            
-        sess['project_id'] = sess['project']
-        sess['project_label'] = sess['project']
-        sess['subject_id'] = sess['subject_ID'] 
-        sess['session_id'] = sess['ID']
-        sess['session_label'] = sess['label']
-        sess['last_modified'] = sess['xnat:imagesessiondata/meta/last_modified']
-        sess['last_updated'] = sess['xnat:imagesessiondata/original']
+        sess_type = sess['xsiType'].lower()
+        if sess_type not in type_list:
+            type_list.append(sess_type)
+    
+    # Get list of sessions for each type since we have to specific about last_modified field
+    for sess_type in type_list:
+        post_uri += '?xsiType='+sess_type+'&columns=ID,URI,subject_label,subject_ID,modality,project,date,xsiType,label,'+sess_type+'/meta/last_modified,'+sess_type+'/original'
+        sess_list = intf._get_json(post_uri)
 
-    return sess_list
+        for sess in sess_list:
+            # Override the project returned to be the one we queried
+            if (projectid != None):
+                sess['project'] = projectid
+            
+            sess['project_id'] = sess['project']
+            sess['project_label'] = sess['project']
+            sess['subject_id'] = sess['subject_ID'] 
+            sess['session_id'] = sess['ID']
+            sess['session_label'] = sess['label']
+            sess['last_modified'] = sess[sess_type+'/meta/last_modified']
+            sess['last_updated'] = sess[sess_type+'/original']
+        
+        # Add sessions of this type to full list    
+        full_sess_list.extend(sess_list)
+        
+    return full_sess_list
 
 def list_scans(intf, projectid, subjectid, experimentid):
     post_uri = '/REST/projects/'+projectid+'/subjects/'+subjectid+'/experiments'
@@ -355,7 +371,7 @@ def list_project_scans(intf, projectid, include_shared=True):
             snew['type']         = s['xnat:imagescandata/type']
             snew['project_id'] = projectid
             snew['project_label'] = projectid
-            snew['subject_id'] = s['xnat:imagesessiondata/subject_id']
+            snew['subject_id'] = s[sess_type+'xnat:imagesessiondata/subject_id']
             snew['subject_label'] = s['subject_label']
             snew['session_id'] = s['ID']
             snew['session_label'] = s['label']
