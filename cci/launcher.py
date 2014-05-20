@@ -373,7 +373,7 @@ class Launcher(object):
                         for sess_info in XnatUtils.list_sessions(xnat, subj_info['project'], subj_info['ID']):
                             if sess_info['last_updated'] == '':
                                 print('  +Session:'+sess_info['label']+': subject up to date, setting update time to now')
-                                self.set_session_last_updated(xnat, sess_info)       
+                                self.set_session_lastupdated(xnat, sess_info)       
                                            
         finally:  
                 xnat.disconnect()
