@@ -236,9 +236,9 @@ def list_sessions(intf, projectid=None, subjectid=None):
     
     # Get list of sessions for each type since we have to specific about last_modified field
     for sess_type in type_list:
-        post_uri += '?xsiType='+sess_type+'&columns=ID,URI,subject_label,subject_ID,modality,project,date,xsiType,label,'+sess_type+'/meta/last_modified,'+sess_type+'/original'
-        sess_list = intf._get_json(post_uri)
-
+        post_uri_type = post_uri + '?xsiType='+sess_type+'&columns=ID,URI,subject_label,subject_ID,modality,project,date,xsiType,label,'+sess_type+'/meta/last_modified,'+sess_type+'/original'
+        sess_list = intf._get_json(post_uri_type)
+        
         for sess in sess_list:
             # Override the project returned to be the one we queried
             if (projectid != None):
