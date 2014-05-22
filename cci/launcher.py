@@ -362,18 +362,19 @@ class Launcher(object):
             project_list = sorted(set(self.project_process_dict.keys() + self.project_modules_dict.keys()))
   
             # Update projects
-            for project_id in project_list:  
-                print('===== PROJECT:'+project_id+' =====')  
+            for project_id in project_list:
+                print('===== PROJECT:'+project_id+' =====')
                 for subj_info in XnatUtils.list_subjects(xnat, project_id):
                     last_mod = datetime.strptime(subj_info['last_modified'][0:19], '%Y-%m-%d %H:%M:%S')
                     last_up = self.get_lastupdated(subj_info)
-                    print('  +Subject:'+subj_info['label']+': skipping, last_mod='+str(last_mod)+',last_up='+str(last_up))
-                                        
                     if (last_up != None and last_mod < last_up):
+                        print('  +Subject:'+subj_info['label']+', subject up to date:last_mod='+str(last_mod)+',last_up='+str(last_up))
                         for sess_info in XnatUtils.list_sessions(xnat, subj_info['project'], subj_info['ID']):
                             if sess_info['last_updated'] == '':
                                 print('  +Session:'+sess_info['label']+': subject up to date, setting update time to now')
-                                self.set_session_lastupdated(xnat, sess_info)       
+                                self.set_session_lastupdated(xnat, sess_info)
+                    else:
+                        print('  +Subject:'+subj_info['label']+', skipping:last_mod='+str(last_mod)+',last_up='+str(last_up))     
                                            
         finally:  
                 xnat.disconnect()
