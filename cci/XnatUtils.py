@@ -211,7 +211,7 @@ def list_experiments(intf, projectid=None, subjectid=None):
         e['project_id'] = e['project']
         e['project_label'] = e['project']
 
-    return experiment_list
+    return sorted(experiment_list, key=lambda k: k['session_label'])
 
 def list_sessions(intf, projectid=None, subjectid=None):
     type_list = []
@@ -254,8 +254,9 @@ def list_sessions(intf, projectid=None, subjectid=None):
         
         # Add sessions of this type to full list    
         full_sess_list.extend(sess_list)
-        
-    return full_sess_list
+    
+    # Return list sorted by label
+    return sorted(full_sess_list, key=lambda k: k['session_label'])
 
 def list_scans(intf, projectid, subjectid, experimentid):
     post_uri = '/REST/projects/'+projectid+'/subjects/'+subjectid+'/experiments'
@@ -296,7 +297,7 @@ def list_scans(intf, projectid, subjectid, experimentid):
             snew['session_uri'] = s['URI']
             new_list.append(snew)
 
-    return new_list
+    return sorted(new_list, key=lambda k: k['label'])
     
 def list_project_scans(intf, projectid, include_shared=True):
     new_list = []
@@ -378,7 +379,7 @@ def list_project_scans(intf, projectid, include_shared=True):
             snew['session_uri'] = s['URI']
             new_list.append(snew)
             
-    return new_list
+    return sorted(new_list, key=lambda k: k['scan_label'])
 
 def list_scan_resources(intf, projectid, subjectid, experimentid, scanid):
     post_uri = '/REST/projects/'+projectid+'/subjects/'+subjectid+'/experiments/'+experimentid+'/scans/'+scanid+'/resources'
@@ -441,7 +442,7 @@ def list_assessors(intf, projectid, subjectid, experimentid):
         anew['xsiType'] = a['xsiType']
         new_list.append(anew)
 
-    return new_list
+    return sorted(new_list, key=lambda k: k['label'])
 
 def list_project_assessors(intf, projectid):
     new_list = []
@@ -504,7 +505,7 @@ def list_project_assessors(intf, projectid):
         anew['xsiType'] = a['xsiType']
         new_list.append(anew)
 
-    return new_list
+    return sorted(new_list, key=lambda k: k['label'])
 
 def list_assessor_out_resources(intf, projectid, subjectid, experimentid, assessorid):
     post_uri = '/REST/projects/'+projectid+'/subjects/'+subjectid+'/experiments/'+experimentid+'/assessors/'+assessorid+'/out/resources'
