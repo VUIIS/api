@@ -97,13 +97,13 @@ class SpiderProcessHandler:
             print'  -Copying '+Resource+': '+filePath+' to '+self.dir
             os.system('cp '+filePath+' '+self.dir+'/'+Resource+'/')
 
-    def add_folder(self,FolderPath,ResourceName='nan'):
+    def add_folder(self,FolderPath,ResourceName=None):
         #check if the folder exists:
         if not os.path.exists(FolderPath.strip()):
             self.error=1
             print 'ERROR: folder '+FolderPath+' does not exists.'
         else:
-            if ResourceName!='nan':
+            if ResourceName != None:
                 #make the resource folder
                 if not os.path.exists(self.dir+'/'+ResourceName):
                     os.mkdir(self.dir+'/'+ResourceName)
@@ -176,15 +176,16 @@ def list_subjects(intf, projectid=None):
 
     subject_list = intf._get_json(post_uri)
 
-    # Override the project returned to be the one we queried
-    if (projectid != None):
-        for s in subject_list:
+    for s in subject_list:
+        if (projectid != None):
+            # Override the project returned to be the one we queried
             s['project'] = projectid
 
-    return subject_list
+        s['project_id'] = s['project']
+        s['project_label'] = s['project']
+        s['last_updated'] = s['src']
 
-def list_sessions(intf, projectid=None, subjectid=None):
-    return list_experiments(intf, projectid, subjectid)
+    return subject_list
 
 def list_experiments(intf, projectid=None, subjectid=None):
     if projectid and subjectid:
@@ -199,17 +200,63 @@ def list_experiments(intf, projectid=None, subjectid=None):
     post_uri += '?columns=ID,URI,subject_label,subject_ID,modality,project,date,xsiType,label,xnat:subjectdata/meta/last_modified'
     experiment_list = intf._get_json(post_uri)
 
-    # Override the project returned to be the one we queried and add others for convenience
-    if (projectid != None):
-        for e in experiment_list:
+    for e in experiment_list:
+        if (projectid != None):
+            # Override the project returned to be the one we queried and add others for convenience
             e['project'] = projectid
-            e['project_id'] = projectid
-            e['project_label'] = projectid
-            e['subject_id'] = e['subject_ID'] 
-            e['session_id'] = e['ID']
-            e['session_label'] = e['label']
+            
+        e['subject_id'] = e['subject_ID'] 
+        e['session_id'] = e['ID']
+        e['session_label'] = e['label']
+        e['project_id'] = e['project']
+        e['project_label'] = e['project']
 
-    return experiment_list
+    return sorted(experiment_list, key=lambda k: k['session_label'])
+
+def list_sessions(intf, projectid=None, subjectid=None):
+    type_list = []
+    full_sess_list = []
+    
+    if projectid and subjectid:
+        post_uri = '/REST/projects/'+projectid+'/subjects/'+subjectid+'/experiments'
+    elif projectid == None and subjectid == None:
+        post_uri = '/REST/experiments'
+    elif projectid and subjectid == None:
+        post_uri = '/REST/projects/'+projectid+'/experiments'
+    else:
+        return None
+    
+    # First get a list of all experiment types
+    post_uri_types = post_uri+'?columns=xsiType'
+    sess_list = intf._get_json(post_uri)
+    for sess in sess_list:
+        sess_type = sess['xsiType'].lower()
+        if sess_type not in type_list:
+            type_list.append(sess_type)
+    
+    # Get list of sessions for each type since we have to specific about last_modified field
+    for sess_type in type_list:
+        post_uri_type = post_uri + '?xsiType='+sess_type+'&columns=ID,URI,subject_label,subject_ID,modality,project,date,xsiType,label,'+sess_type+'/meta/last_modified,'+sess_type+'/original'
+        sess_list = intf._get_json(post_uri_type)
+        
+        for sess in sess_list:
+            # Override the project returned to be the one we queried
+            if (projectid != None):
+                sess['project'] = projectid
+            
+            sess['project_id'] = sess['project']
+            sess['project_label'] = sess['project']
+            sess['subject_id'] = sess['subject_ID'] 
+            sess['session_id'] = sess['ID']
+            sess['session_label'] = sess['label']
+            sess['last_modified'] = sess[sess_type+'/meta/last_modified']
+            sess['last_updated'] = sess[sess_type+'/original']
+        
+        # Add sessions of this type to full list    
+        full_sess_list.extend(sess_list)
+    
+    # Return list sorted by label
+    return sorted(full_sess_list, key=lambda k: k['session_label'])
 
 def list_scans(intf, projectid, subjectid, experimentid):
     post_uri = '/REST/projects/'+projectid+'/subjects/'+subjectid+'/experiments'
@@ -250,7 +297,7 @@ def list_scans(intf, projectid, subjectid, experimentid):
             snew['session_uri'] = s['URI']
             new_list.append(snew)
 
-    return new_list
+    return sorted(new_list, key=lambda k: k['label'])
     
 def list_project_scans(intf, projectid, include_shared=True):
     new_list = []
@@ -325,14 +372,14 @@ def list_project_scans(intf, projectid, include_shared=True):
             snew['type']         = s['xnat:imagescandata/type']
             snew['project_id'] = projectid
             snew['project_label'] = projectid
-            snew['subject_id'] = s['xnat:imagesessiondata/subject_id']
+            snew['subject_id'] = s[sess_type+'xnat:imagesessiondata/subject_id']
             snew['subject_label'] = s['subject_label']
             snew['session_id'] = s['ID']
             snew['session_label'] = s['label']
             snew['session_uri'] = s['URI']
             new_list.append(snew)
             
-    return new_list
+    return sorted(new_list, key=lambda k: k['scan_label'])
 
 def list_scan_resources(intf, projectid, subjectid, experimentid, scanid):
     post_uri = '/REST/projects/'+projectid+'/subjects/'+subjectid+'/experiments/'+experimentid+'/scans/'+scanid+'/resources'
@@ -395,7 +442,7 @@ def list_assessors(intf, projectid, subjectid, experimentid):
         anew['xsiType'] = a['xsiType']
         new_list.append(anew)
 
-    return new_list
+    return sorted(new_list, key=lambda k: k['label'])
 
 def list_project_assessors(intf, projectid):
     new_list = []
@@ -458,7 +505,7 @@ def list_project_assessors(intf, projectid):
         anew['xsiType'] = a['xsiType']
         new_list.append(anew)
 
-    return new_list
+    return sorted(new_list, key=lambda k: k['label'])
 
 def list_assessor_out_resources(intf, projectid, subjectid, experimentid, assessorid):
     post_uri = '/REST/projects/'+projectid+'/subjects/'+subjectid+'/experiments/'+experimentid+'/assessors/'+assessorid+'/out/resources'
