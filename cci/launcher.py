@@ -26,11 +26,12 @@ UPDATE_PREFIX = 'updated--'
 #TODO: add sort options
 
 class Launcher(object):
-    def __init__(self,project_process_dict,project_modules_dict,queue_limit=DEFAULT_QUEUE_LIMIT, root_job_dir=DEFAULT_ROOT_JOB_DIR, xnat_user=None, xnat_pass=None, xnat_host=None, upload_dir=None, job_email=None,job_email_options='bae'):
+    def __init__(self,project_process_dict,project_modules_dict,priority_project=None,queue_limit=DEFAULT_QUEUE_LIMIT, root_job_dir=DEFAULT_ROOT_JOB_DIR, xnat_user=None, xnat_pass=None, xnat_host=None, upload_dir=None, job_email=None,job_email_options='bae'):
         self.queue_limit = queue_limit
         self.root_job_dir = root_job_dir
         self.project_process_dict = project_process_dict
         self.project_modules_dict = project_modules_dict
+        self.priority_project = priority_project
         self.job_email=job_email
         self.job_email_options=job_email_options
         
@@ -133,7 +134,11 @@ class Launcher(object):
     
     def get_open_tasks(self, xnat):
         task_list = []
-        project_list = list(self.project_process_dict.keys())
+        #Priority:
+        if self.priority_project:
+            project_list=self.priority_project
+        else:
+            project_list = list(self.project_process_dict.keys())
         
         # iterate projects
         for project_id in project_list:
@@ -194,7 +199,11 @@ class Launcher(object):
             print('Connecting to XNAT at '+self.xnat_host)
             xnat = Interface(self.xnat_host, self.xnat_user, self.xnat_pass)
 
-            project_list = sorted(set(self.project_process_dict.keys() + self.project_modules_dict.keys()))
+            #Priority:
+            if self.priority_project:
+                project_list=self.priority_project
+            else:
+                project_list = sorted(set(self.project_process_dict.keys() + self.project_modules_dict.keys()))
   
             # Update projects
             for project_id in project_list:  
