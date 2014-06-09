@@ -78,6 +78,11 @@ class Launcher(object):
 
         # TODO: check the project process list
         # TODO: check that projects exist
+    
+    #If priority list given in parameters: 
+    def get_project_list(self,list_of_all_projects):
+        random_project=filter(lambda project: project not in self.priority_project, list_of_all_projects)
+        return self.priority_project+random_project
         
     def update_open_tasks(self, lockfile_prefix):
         task_queue = []
@@ -136,7 +141,7 @@ class Launcher(object):
         task_list = []
         #Priority:
         if self.priority_project:
-            project_list=self.priority_project
+            project_list=self.get_project_list(self.project_process_dict.keys())
         else:
             project_list = list(self.project_process_dict.keys())
         
@@ -201,7 +206,7 @@ class Launcher(object):
 
             #Priority:
             if self.priority_project:
-                project_list=self.priority_project
+                project_list=self.get_project_list(list(set(self.project_process_dict.keys() + self.project_modules_dict.keys())))
             else:
                 project_list = sorted(set(self.project_process_dict.keys() + self.project_modules_dict.keys()))
   
