@@ -182,12 +182,12 @@ class Launcher(object):
     def match_proc(self, xnat, assr_info, sess_proc_list, scan_proc_list):         
         # Look for a match in sess processors
         for sess_proc in sess_proc_list:
-            if sess_proc.xsitype == assr_info['xsiType'] and sess_proc.name == assr_info['proctype']:
+            if sess_proc.xsitype == assr_info['xsiType'] and sess_proc.name+'_v'+sess_proc.majorVersion == assr_info['proctype']:
                 return sess_proc
                     
         # Look for a match in scan processors
         for scan_proc in scan_proc_list:
-            if scan_proc.xsitype == assr_info['xsiType'] and scan_proc.name == assr_info['proctype']:
+            if scan_proc.xsitype == assr_info['xsiType'] and scan_proc.name+'_v'+sess_proc.majorVersion == assr_info['proctype']:
                 return scan_proc
                     
         return None     
@@ -242,8 +242,8 @@ class Launcher(object):
             else: 
                 print('  +Session:'+sess_info['label']+': updating...')
                 # NOTE: we set update time here, so if the sess is changed below it will be checked again    
+                self.update_session(xnat, sess_info, exp_proc_list, scan_proc_list, exp_mod_list, scan_mod_list)
                 self.set_session_lastupdated(xnat, sess_info)
-                self.update_session(xnat, sess_info, exp_proc_list, scan_proc_list, exp_mod_list, scan_mod_list)        
             
         # Modules after run
         print('  *Modules Afterrun')
