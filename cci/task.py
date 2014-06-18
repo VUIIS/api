@@ -47,7 +47,7 @@ class Task(object):
             assessor.create(assessors=self.atype)
             self.set_createdate_today()
             if self.atype == 'proc:genprocdata':
-                assessor.attrs.set('proc:genprocdata/proctype', self.get_processor_name())
+                assessor.attrs.set('proc:genprocdata/proctype', self.get_processor_name()+'_v'+self.get_processor_majorVersion())
                 assessor.attrs.set('proc:genprocdata/validation/status', JOB_PENDING)
             if processor.has_inputs(assessor):
                 self.set_status(NEED_TO_RUN)
@@ -60,6 +60,12 @@ class Task(object):
                  
     def get_processor_name(self):
         return self.processor.name
+        
+    def get_processor_majorVersion(self):
+        return self.processor.majorVersion
+        
+    def get_processor_minorVersion(self):
+        return self.processor.minorVersion
     
     def is_open(self):
         astatus = self.get_status()
@@ -286,7 +292,7 @@ class Task(object):
             
             #save record on redcap for the job that has been launch
             project=self.assessor_label.split('-x-')[0]
-            SM_name=self.get_processor_name()
+            SM_name=self.get_processor_name()+'_v'+self.get_processor_majorVersion()+'_m'+get_processor_minorVersion()
             data,record_id=XnatUtils.create_record_redcap(project, SM_name)
             run=XnatUtils.save_job_redcap(data,record_id)
             if not run:
