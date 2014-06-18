@@ -8,12 +8,14 @@ USER_HOME = expanduser("~")
 DEFAULT_MASIMATLAB_PATH = os.path.join(USER_HOME,'masimatlab')
 
 class Processor(object):
-    def __init__(self,walltime_str,memreq_mb,name,ppn=1,xsitype='proc:genProcData'):
+    def __init__(self,walltime_str,memreq_mb,name,ppn=1,xsitype='proc:genProcData',majorVersion=None,minorVersion=None):
         self.walltime_str=walltime_str # 00:00:00 format
         self.memreq_mb=memreq_mb  # memory required in megabytes      
         self.name=name 
         self.ppn = ppn
         self.xsitype = xsitype
+        self.majorVersion = majorVersion
+        self.minorVersion = minorVersion
 
     # has_inputs - does this object have the required inputs? e.g. NIFTI format of the required scan type and quality and are there no conflicting inputs, i.e. only 1 required by 2 found?
     def has_inputs(): # what other arguments here, could be Project/Subject/Session/Scan/Assessor depending on type of processor?
@@ -41,7 +43,7 @@ class ScanProcessor(Processor):
         sess_label = scan_dict['session_label']
         proj_label = scan_dict['project_label']
         scan_label = scan_dict['scan_label']
-        return (proj_label+'-x-'+subj_label+'-x-'+sess_label+'-x-'+scan_label+'-x-'+self.name)
+        return (proj_label+'-x-'+subj_label+'-x-'+sess_label+'-x-'+scan_label+'-x-'+self.name+'_v'+self.majorVersion+'_m'+self.minorVersion)
         
     def get_task(self, intf, scan_dict, upload_dir):
         scan = XnatUtils.get_full_object(intf,scan_dict)
@@ -63,7 +65,7 @@ class SessionProcessor(Processor):
         proj_label = session_dict['project']
         subj_label = session_dict['subject_label']
         sess_label = session_dict['label']  
-        return (proj_label+'-x-'+subj_label+'-x-'+sess_label+'-x-'+self.name)
+        return (proj_label+'-x-'+subj_label+'-x-'+sess_label+'-x-'+self.name+'_v'+self.majorVersion+'_m'+self.minorVersion)
     
     def get_task(self, intf, session_dict, upload_dir):
         session = XnatUtils.get_full_object(intf,session_dict)
