@@ -14,7 +14,7 @@ class Processor(object):
         self.spider_path=spider_path
         self.ppn = ppn
         self.xsitype = xsitype
-        set_spider_info():
+        set_spider_info()
     
     #set information coming from the spider_path
     def set_spider_info(self):
