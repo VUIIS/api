@@ -7,8 +7,7 @@ Created on Mar 13, 2013
 @author: Benjamin Yvernault, Electrical Engineering, Vanderbilt University
 '''
 
-import os
-import sys
+import os,sys,re
 from datetime import datetime
 from pyxnat import Interface
 from task import READY_TO_COMPLETE, COMPLETE, UPLOADING
@@ -566,7 +565,7 @@ if __name__ == '__main__':
                                         elif os.path.exists(os.path.join(assessor_path,'JOB_FAILED.txt')):
                                             ASSESSOR.attrs.set('proc:genProcData/procstatus','JOB_FAILED') #Set to uploading files
                                         ASSESSOR.attrs.set('proc:genProcData/validation/status','Job Pending')
-                                        ASSESSOR.attrs.set('proc:genProcData/proctype', Process_name)
+                                        ASSESSOR.attrs.set('proc:genProcData/proctype', re.split("/*_m[0-9]/*", Process_name)[0])
                                         now=datetime.now()
                                         today=str(now.year)+'-'+str(now.month)+'-'+str(now.day)
                                         ASSESSOR.attrs.set('proc:genProcData/date',today)
