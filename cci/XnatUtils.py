@@ -1,7 +1,7 @@
 import socket
 
 from pyxnat import Interface
-import os, sys, shutil
+import os, sys, shutil, re
 from datetime import datetime
 import redcap
 from lxml import etree
@@ -10,7 +10,7 @@ from lxml import etree
 #            Class JobHandler to copy file after the end of a Job                  #
 ####################################################################################   
 class SpiderProcessHandler:
-    def __init__(self,ProcessName,project,subject,experiment,scan=''):
+    def __init__(self,script_name,project,subject,experiment,scan=''):
         #set the email env to send the email if a job fail
         try:
             # Environs
@@ -18,7 +18,11 @@ class SpiderProcessHandler:
         except KeyError as e:
             print "You must set the environment variable %s. The email with errors will be send with this address." % str(e)
             sys.exit(1)
-
+            
+        if len(script_name.split('/'))>1:
+            script_name=os.path.basename(script_name)
+        if script_name.endswith('.py'):
+            script_name=script_name[:-3]
         #make the assessor folder for upload
         if scan=='':
             self.assessor_label=project+'-x-'+subject+'-x-'+experiment+'-x-'+ProcessName
@@ -39,7 +43,11 @@ class SpiderProcessHandler:
         self.subject=subject
         self.experiment=experiment
         self.scan=scan
-        self.ProcessName=ProcessName
+        self.ProcessName=script_name[7:]
+        if len(re.split("/*_v[0-9]/*", script_name))>1:
+            self.version = script_name.split('_v')[-1]
+        else:
+            self.version = '1.0.0'
         self.finish=0
         self.error=0
 
@@ -137,6 +145,11 @@ class SpiderProcessHandler:
             xnat.disconnect()
 
     def done(self):
+        #creating the version file to give the spider version:
+        f=open(os.path.join(self.dir,'version.txt'),'w')
+        f.write(self.version)
+        f.close()
+        #Finish the folder
         if self.finish and not self.error:
             print'INFO: Job ready to be upload, error: '+ str(self.error)
             #make the flag folder
