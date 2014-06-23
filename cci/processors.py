@@ -18,13 +18,12 @@ class Processor(object):
     
     #set information coming from the spider_path
     def set_spider_info(self):
-        self.name=os.path.basename(spider_path)[7:-3]
-        version=re.split("/*_m[0-9]/*", self.spider_path)
-        #Remove the minor version
-        if len(version)>1:
-            self.proctype=version[0]
+        #Name is the procname with the X version (major version) and version has all the version in it
+        if len(re.split("/*_v[0-9]/*", self.spider_path))>1:
+            self.version = os.path.basename(spider_path)[7:-3].split('_v')[-1]
+            self.name = os.path.basename(spider_path)[7:-3].split('_v')[0] +'_v'+ self.version.split('.')[0]
         else:
-            self.proctype = self.name
+            self.name = os.path.basename(spider_path)[7:-3]
 
     # has_inputs - does this object have the required inputs? e.g. NIFTI format of the required scan type and quality and are there no conflicting inputs, i.e. only 1 required by 2 found?
     def has_inputs(): # what other arguments here, could be Project/Subject/Session/Scan/Assessor depending on type of processor?
