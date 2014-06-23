@@ -23,6 +23,7 @@ class Processor(object):
             self.version = os.path.basename(spider_path)[7:-3].split('_v')[-1]
             self.name = os.path.basename(spider_path)[7:-3].split('_v')[0] +'_v'+ self.version.split('.')[0]
         else:
+            self.version = '1.0.0'
             self.name = os.path.basename(spider_path)[7:-3]
 
     # has_inputs - does this object have the required inputs? e.g. NIFTI format of the required scan type and quality and are there no conflicting inputs, i.e. only 1 required by 2 found?
