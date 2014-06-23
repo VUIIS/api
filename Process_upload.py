@@ -445,6 +445,12 @@ def upload_zip(Resource,directory,resourceObj):
     #return to the initial directory:
     os.chdir(initDir)
     
+def get_version_assessor(assessor_path):
+    f=open(os.path.join(assessor_path,'version.txt'),'r')
+    version=f.read().strip()
+    f.close()
+    return version
+    
 #########################################################################################################################################################
 ###############################################################  MAIN FUNCTION ##########################################################################
 #########################################################################################################################################################
@@ -533,6 +539,8 @@ if __name__ == '__main__':
                             Experiment=labels[2]
                             #The Process name is the last labels
                             Process_name=labels[-1]
+                            #get spiderpath from version.txt file:
+                            version = get_version_assessor(assessor_path)
                             
                             #check if subject/experiment exists on XNAT
                             EXPERIMENT = xnat.select('/project/'+ProjectName+'/subjects/'+Subject+'/experiments/'+Experiment)
@@ -552,7 +560,8 @@ if __name__ == '__main__':
                                         elif os.path.exists(os.path.join(assessor_path,'JOB_FAILED.txt')):
                                             ASSESSOR.attrs.set('fs:fsData/procstatus','JOB_FAILED') #Set to uploading files
                                         ASSESSOR.attrs.set('fs:fsData/validation/status','Job Pending')
-                                        ASSESSOR.attrs.set('fs:fsData/proctype', 'FreeSurfer')
+                                        ASSESSOR.attrs.set('fs:fsData/proctype', 'FreeSurfer_v'+Process_name.split('_v')[-1])
+                                        ASSESSOR.attrs.set('fs:fsData/version', version)
                                         now=datetime.now()
                                         today=str(now.year)+'-'+str(now.month)+'-'+str(now.day)
                                         ASSESSOR.attrs.set('fs:fsData/date',today)
@@ -565,7 +574,8 @@ if __name__ == '__main__':
                                         elif os.path.exists(os.path.join(assessor_path,'JOB_FAILED.txt')):
                                             ASSESSOR.attrs.set('proc:genProcData/procstatus','JOB_FAILED') #Set to uploading files
                                         ASSESSOR.attrs.set('proc:genProcData/validation/status','Job Pending')
-                                        ASSESSOR.attrs.set('proc:genProcData/proctype', re.split("/*_m[0-9]/*", Process_name)[0])
+                                        ASSESSOR.attrs.set('proc:genProcData/proctype', Process_name)
+                                        ASSESSOR.attrs.set('proc:genProcData/version', version)
                                         now=datetime.now()
                                         today=str(now.year)+'-'+str(now.month)+'-'+str(now.day)
                                         ASSESSOR.attrs.set('proc:genProcData/date',today)
