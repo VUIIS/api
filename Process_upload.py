@@ -225,7 +225,7 @@ def Uploading_Assessor(xnat,assessor_path,ProjectName,Subject,Experiment,assesso
                 original = [s for s in Resource_files_list if "original" in s][0]
                 r.file(original).put(Resource_path+'/'+original,(original.split('.')[1]).upper(),'ORIGINAL')
                 os.remove(Resource_path+'/'+original)
-                if len(Resource_files_list)>2:
+                if len(os.listdir(Resource_path))>2:
                     upload_zip(Resource,Resource_path,r)
                     
             #for all the other resources :
@@ -405,7 +405,7 @@ def Upload_FreeSurfer(xnat,assessor_path,ProjectName,Subject,Experiment,assessor
                 original = [s for s in Resource_files_list if "original" in s][0]
                 r.file(original).put(os.path.join(Resource_path,original),(original.split('.')[1]).upper(),'ORIGINAL')
                 os.remove(os.path.join(Resource_path,original))
-                if len(Resource_files_list)>2:
+                if len(os.listdir(Resource_path))>2:
                     upload_zip(Resource,Resource_path,r)
                     
             #for all the other resources :
