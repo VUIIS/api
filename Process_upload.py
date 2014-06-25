@@ -560,8 +560,8 @@ if __name__ == '__main__':
                                         elif os.path.exists(os.path.join(assessor_path,'JOB_FAILED.txt')):
                                             ASSESSOR.attrs.set('fs:fsData/procstatus','JOB_FAILED') #Set to uploading files
                                         ASSESSOR.attrs.set('fs:fsData/validation/status','Job Pending')
-                                        ASSESSOR.attrs.set('fs:fsData/proctype', 'FreeSurfer_v'+Process_name.split('_v')[-1])
-                                        ASSESSOR.attrs.set('fs:fsData/version', version)
+                                        ASSESSOR.attrs.set('fs:fsData/proctype', 'FreeSurfer_v'+version.split('.')[0])
+                                        ASSESSOR.attrs.set('fs:fsData/procversion', version)
                                         now=datetime.now()
                                         today=str(now.year)+'-'+str(now.month)+'-'+str(now.day)
                                         ASSESSOR.attrs.set('fs:fsData/date',today)
@@ -575,7 +575,7 @@ if __name__ == '__main__':
                                             ASSESSOR.attrs.set('proc:genProcData/procstatus','JOB_FAILED') #Set to uploading files
                                         ASSESSOR.attrs.set('proc:genProcData/validation/status','Job Pending')
                                         ASSESSOR.attrs.set('proc:genProcData/proctype', Process_name)
-                                        ASSESSOR.attrs.set('proc:genProcData/version', version)
+                                        ASSESSOR.attrs.set('proc:genProcData/procversion', version)
                                         now=datetime.now()
                                         today=str(now.year)+'-'+str(now.month)+'-'+str(now.day)
                                         ASSESSOR.attrs.set('proc:genProcData/date',today)
