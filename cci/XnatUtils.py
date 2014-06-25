@@ -527,6 +527,10 @@ def list_assessor_out_resources(intf, projectid, subjectid, experimentid, assess
     post_uri = '/REST/projects/'+projectid+'/subjects/'+subjectid+'/experiments/'+experimentid+'/assessors/'+assessorid+'/out/resources'
     resource_list = intf._get_json(post_uri)
     return resource_list
+    
+def select_assessor(intf,assessor_label):
+    labels=assessor_label.split('-x-')
+    return intf.select('/project/'+labels['0']+'/subject/'+labels['1']+'/experiment/'+labels['2']+'/assessor/'+assessor_label)
 
 def get_full_object(intf,obj_dict):
     if 'scan_id' in obj_dict:
