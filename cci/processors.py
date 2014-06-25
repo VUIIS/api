@@ -7,6 +7,14 @@ from datetime import datetime
 USER_HOME = expanduser("~")
 DEFAULT_MASIMATLAB_PATH = os.path.join(USER_HOME,'masimatlab')
 
+def get_spider_path(masimatlab,proc_name,spider_path,version):
+    if spider_path:
+        return spider_path
+    elif version:
+        return os.path.join(masimatlab,'Spider_'+proc_name+'_v'+version+'.py'
+    else:
+        return os.path.join(masimatlab,'Spider_'+proc_name+'.py')
+
 class Processor(object):
     def __init__(self,walltime_str,memreq_mb,spider_path,ppn=1,xsitype='proc:genProcData'):
         self.walltime_str=walltime_str # 00:00:00 format
