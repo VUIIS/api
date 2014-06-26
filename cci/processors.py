@@ -20,7 +20,7 @@ class Processor(object):
     def set_spider_settings(self,spider_path,version):
         if version:
             #get the proc_name
-            proc_name=os.basename(spider_path)[7:-3]
+            proc_name=os.path.basename(spider_path)[7:-3]
             #remove any version if there is one
             proc_name=re.split("/*_v[0-9]/*", proc_name)[0]
             if os.path.exists(os.path.join(os.path.dirname(spider_path),'Spider_'+proc_name+'_v'+version+'.py')):
