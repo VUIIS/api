@@ -63,7 +63,7 @@ class ScanProcessor(Processor):
         raise NotImplementedError()
     
     def __init__(self,scan_types,walltime_str,memreq_mb,spider_path,version=None,masimatlab=DEFAULT_MASIMATLAB_PATH, ppn=1):
-        super(ScanProcessor, self).__init__(walltime_str, memreq_mb, masimatlab,spider_path,version, ppn)
+        super(ScanProcessor, self).__init__(walltime_str, memreq_mb,spider_path,version,masimatlab,ppn)
         self.scan_types=scan_types
          
     def get_assessor_name(self,scan_dict):
@@ -87,7 +87,7 @@ class SessionProcessor(Processor):
         raise NotImplementedError()
     
     def __init__(self,walltime_str,memreq_mb,spider_path,version=None,masimatlab=DEFAULT_MASIMATLAB_PATH,ppn=1):
-        super(SessionProcessor, self).__init__(walltime_str,memreq_mb,masimatlab,spider_path,version,ppn)
+        super(SessionProcessor, self).__init__(walltime_str,memreq_mb,spider_path,version,masimatlab,ppn)
         
     def get_assessor_name(self,session_dict):  
         proj_label = session_dict['project']
