@@ -187,7 +187,7 @@ class Launcher(object):
                     
         # Look for a match in scan processors
         for scan_proc in scan_proc_list:
-            if scan_proc.xsitype == assr_info['xsiType'] and scan_proc.proctype == assr_info['proctype']:
+            if scan_proc.xsitype == assr_info['xsiType'] and scan_proc.name == assr_info['proctype']:
                 return scan_proc
                     
         return None     
