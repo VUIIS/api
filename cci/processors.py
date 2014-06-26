@@ -27,7 +27,7 @@ class Processor(object):
                 #setting the version and name of the spider
                 self.name = proc_name+'_v'+self.version.split('.')[0]
                 self.version = version
-                self.spider_path os.path.join(os.path.dirname(spider_path),'Spider_'+proc_name+'_v'+version+'.py')
+                self.spider_path = os.path.join(os.path.dirname(spider_path),'Spider_'+proc_name+'_v'+version+'.py')
             else:
                 default_settings_spider(spider_path)
         else:
