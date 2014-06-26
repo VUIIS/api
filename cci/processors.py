@@ -12,7 +12,7 @@ class Processor(object):
         self.walltime_str=walltime_str # 00:00:00 format
         self.memreq_mb=memreq_mb  # memory required in megabytes      
         self.masimatlab=masimatlab
-        set_spider_settings(spider_path,version)
+        self.set_spider_settings(spider_path,version)
         self.ppn = ppn
         self.xsitype = xsitype
 
