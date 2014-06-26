@@ -182,7 +182,7 @@ class Launcher(object):
     def match_proc(self, xnat, assr_info, sess_proc_list, scan_proc_list):         
         # Look for a match in sess processors
         for sess_proc in sess_proc_list:
-            if sess_proc.xsitype == assr_info['xsiType'] and sess_proc.proctype == assr_info['proctype']:
+            if sess_proc.xsitype == assr_info['xsiType'] and sess_proc.name == assr_info['proctype']:
                 return sess_proc
                     
         # Look for a match in scan processors
