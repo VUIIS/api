@@ -17,7 +17,7 @@ class Processor(object):
         self.xsitype = xsitype
 
     #get the spider_path right with the version:
-    def set_spider_settings(spider_path,version):
+    def set_spider_settings(self,spider_path,version):
         if version:
             #get the proc_name
             proc_name=os.basename(spider_path)[7:-3]
@@ -29,11 +29,11 @@ class Processor(object):
                 self.version = version
                 self.spider_path = os.path.join(os.path.dirname(spider_path),'Spider_'+proc_name+'_v'+version+'.py')
             else:
-                default_settings_spider(spider_path)
+                self.default_settings_spider(spider_path)
         else:
-            default_settings_spider(spider_path)
+            self.default_settings_spider(spider_path)
     
-    def default_settings_spider(spider_path):
+    def default_settings_spider(self,spider_path):
         #set spider path
         self.spider_path = spider_path
         #set the name and the version of the spider
