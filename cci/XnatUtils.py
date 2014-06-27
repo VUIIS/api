@@ -23,12 +23,21 @@ class SpiderProcessHandler:
             script_name=os.path.basename(script_name)
         if script_name.endswith('.py'):
             script_name=script_name[:-3]
+        
+        #ge the processname from spider
+        if len(re.split("/*_v[0-9]/*", spider_path))>1:
+            self.version = script_name.split('_v')[-1]
+            self.ProcessName=re.split("/*_v[0-9]/*", spider_path[7:])[0]+'_v'+self.version.split('.')[0]
+        else:
+            self.version = '1.0.0'
+            self.ProcessName=script_name[7:]
+            
         #make the assessor folder for upload
         if scan=='':
-            self.assessor_label=project+'-x-'+subject+'-x-'+experiment+'-x-'+ProcessName
+            self.assessor_label=project+'-x-'+subject+'-x-'+experiment+'-x-'+self.ProcessName
             self.dir=UploadDir+'/'+self.assessor_label
         else:
-            self.assessor_label=project+'-x-'+subject+'-x-'+experiment+'-x-'+scan+'-x-'+ProcessName
+            self.assessor_label=project+'-x-'+subject+'-x-'+experiment+'-x-'+scan+'-x-'+self.ProcessName
             self.dir=UploadDir+'/'+self.assessor_label
         #if the folder already exists : remove it
         if not os.path.exists(self.dir):
@@ -43,11 +52,6 @@ class SpiderProcessHandler:
         self.subject=subject
         self.experiment=experiment
         self.scan=scan
-        self.ProcessName=script_name[7:]
-        if len(re.split("/*_v[0-9]/*", script_name))>1:
-            self.version = script_name.split('_v')[-1]
-        else:
-            self.version = '1.0.0'
         self.finish=0
         self.error=0
 
