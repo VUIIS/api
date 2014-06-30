@@ -25,9 +25,9 @@ class SpiderProcessHandler:
             script_name=script_name[:-3]
         
         #ge the processname from spider
-        if len(re.split("/*_v[0-9]/*", spider_path))>1:
+        if len(re.split("/*_v[0-9]/*", script_name))>1:
             self.version = script_name.split('_v')[-1]
-            self.ProcessName=re.split("/*_v[0-9]/*", spider_path[7:])[0]+'_v'+self.version.split('.')[0]
+            self.ProcessName=re.split("/*_v[0-9]/*", script_name[7:])[0]+'_v'+self.version.split('.')[0]
         else:
             self.version = '1.0.0'
             self.ProcessName=script_name[7:]
