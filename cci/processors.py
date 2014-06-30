@@ -23,13 +23,10 @@ class Processor(object):
             proc_name=os.path.basename(spider_path)[7:-3]
             #remove any version if there is one
             proc_name=re.split("/*_v[0-9]/*", proc_name)[0]
-            if os.path.exists(os.path.join(os.path.dirname(spider_path),'Spider_'+proc_name+'_v'+version+'.py')):
-                #setting the version and name of the spider
-                self.version = version
-                self.name = proc_name+'_v'+self.version.split('.')[0]
-                self.spider_path = os.path.join(os.path.dirname(spider_path),'Spider_'+proc_name+'_v'+version+'.py')
-            else:
-                self.default_settings_spider(spider_path)
+            #setting the version and name of the spider
+            self.version = version
+            self.name = proc_name+'_v'+self.version.split('.')[0]
+            self.spider_path = os.path.join(os.path.dirname(spider_path),'Spider_'+proc_name+'_v'+version+'.py')
         else:
             self.default_settings_spider(spider_path)
     
