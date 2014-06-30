@@ -23,7 +23,9 @@ class SpiderProcessHandler:
             script_name=os.path.basename(script_name)
         if script_name.endswith('.py'):
             script_name=script_name[:-3]
-        
+        if 'Spider' in script_name:
+            script_name=script_name[7:]
+            
         #ge the processname from spider
         if len(re.split("/*_v[0-9]/*", script_name))>1:
             self.version = script_name.split('_v')[-1]
