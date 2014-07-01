@@ -7,8 +7,7 @@ Created on Mar 13, 2013
 @author: Benjamin Yvernault, Electrical Engineering, Vanderbilt University
 '''
 
-import os
-import sys
+import os,sys,re
 from datetime import datetime
 from pyxnat import Interface
 from task import READY_TO_COMPLETE, COMPLETE, UPLOADING
@@ -173,7 +172,7 @@ def check_crontab_job(UploadDir):
             
     return flag_files_list
             
-def Uploading_Assessor(xnat,assessor_path,ProjectName,Subject,Experiment,assessor_label):
+def Uploading_Assessor(xnat,assessor_path,ProjectName,Subject,Experiment,assessor_label,version):
     #SNAPSHOTS :
     #Check if the SNAPSHOTS folder exists, if not create one from PDF if pdf exists :
     if not os.path.exists(assessor_path+'/SNAPSHOTS/') and os.path.exists(assessor_path+'/PDF/'):
@@ -199,6 +198,9 @@ def Uploading_Assessor(xnat,assessor_path,ProjectName,Subject,Experiment,assesso
         
     #Select the assessor
     assessor=experiment.assessor(assessor_label)
+    
+    #set version:
+    assessor.attrs.set('proc:genProcData/procversion', version)
     
     #UPLOAD files :                
     Assessor_Resource_List=os.listdir(assessor_path)    
@@ -226,7 +228,7 @@ def Uploading_Assessor(xnat,assessor_path,ProjectName,Subject,Experiment,assesso
                 original = [s for s in Resource_files_list if "original" in s][0]
                 r.file(original).put(Resource_path+'/'+original,(original.split('.')[1]).upper(),'ORIGINAL')
                 os.remove(Resource_path+'/'+original)
-                if len(Resource_files_list)>2:
+                if len(os.listdir(Resource_path))>2:
                     upload_zip(Resource,Resource_path,r)
                     
             #for all the other resources :
@@ -343,7 +345,7 @@ def Uploading_PBS(pbs_list,xnat):
             print 'ERROR: The PBS file '+pbsfile+' has a wrong ProjectName or Subject label or Experiment label in his name. Copy to TRASH.'
             os.rename(UploadDir+'/PBS/'+pbsfile,UploadDir+'/TRASH/'+pbsfile)
     
-def Upload_FreeSurfer(xnat,assessor_path,ProjectName,Subject,Experiment,assessor_label):
+def Upload_FreeSurfer(xnat,assessor_path,ProjectName,Subject,Experiment,assessor_label,version):
     #SNAPSHOTS :
     #Check if the snapshot exists, if not create one from PDF if pdf exists :
     snapshot_original = assessor_path+'/SNAPSHOTS/snapshot_original.png'
@@ -369,6 +371,8 @@ def Upload_FreeSurfer(xnat,assessor_path,ProjectName,Subject,Experiment,assessor
     #Select the assessor
     assessor=experiment.assessor(assessor_label)
     
+    # set version:
+    assessor.attrs.set('fs:fsData/procversion', version)
     # Upload the XML
     xmlpath=os.path.join(assessor_path,'XML')
     if os.path.exists(xmlpath):
@@ -406,7 +410,7 @@ def Upload_FreeSurfer(xnat,assessor_path,ProjectName,Subject,Experiment,assessor
                 original = [s for s in Resource_files_list if "original" in s][0]
                 r.file(original).put(os.path.join(Resource_path,original),(original.split('.')[1]).upper(),'ORIGINAL')
                 os.remove(os.path.join(Resource_path,original))
-                if len(Resource_files_list)>2:
+                if len(os.listdir(Resource_path))>2:
                     upload_zip(Resource,Resource_path,r)
                     
             #for all the other resources :
@@ -445,6 +449,12 @@ def upload_zip(Resource,directory,resourceObj):
     resourceObj.put_zip(directory+'/'+filenameZip,extract=True)
     #return to the initial directory:
     os.chdir(initDir)
+    
+def get_version_assessor(assessor_path):
+    f=open(os.path.join(assessor_path,'version.txt'),'r')
+    version=f.read().strip()
+    f.close()
+    return version
     
 #########################################################################################################################################################
 ###############################################################  MAIN FUNCTION ##########################################################################
@@ -534,6 +544,8 @@ if __name__ == '__main__':
                             Experiment=labels[2]
                             #The Process name is the last labels
                             Process_name=labels[-1]
+                            #get spiderpath from version.txt file:
+                            version = get_version_assessor(assessor_path)
                             
                             #check if subject/experiment exists on XNAT
                             EXPERIMENT = xnat.select('/project/'+ProjectName+'/subjects/'+Subject+'/experiments/'+Experiment)
@@ -553,7 +565,8 @@ if __name__ == '__main__':
                                         elif os.path.exists(os.path.join(assessor_path,'JOB_FAILED.txt')):
                                             ASSESSOR.attrs.set('fs:fsData/procstatus','JOB_FAILED') #Set to uploading files
                                         ASSESSOR.attrs.set('fs:fsData/validation/status','Job Pending')
-                                        ASSESSOR.attrs.set('fs:fsData/proctype', 'FreeSurfer')
+                                        ASSESSOR.attrs.set('fs:fsData/proctype', 'FreeSurfer_v'+version.split('.')[0])
+                                        ASSESSOR.attrs.set('fs:fsData/procversion', version)
                                         now=datetime.now()
                                         today=str(now.year)+'-'+str(now.month)+'-'+str(now.day)
                                         ASSESSOR.attrs.set('fs:fsData/date',today)
@@ -567,6 +580,7 @@ if __name__ == '__main__':
                                             ASSESSOR.attrs.set('proc:genProcData/procstatus','JOB_FAILED') #Set to uploading files
                                         ASSESSOR.attrs.set('proc:genProcData/validation/status','Job Pending')
                                         ASSESSOR.attrs.set('proc:genProcData/proctype', Process_name)
+                                        ASSESSOR.attrs.set('proc:genProcData/procversion', version)
                                         now=datetime.now()
                                         today=str(now.year)+'-'+str(now.month)+'-'+str(now.day)
                                         ASSESSOR.attrs.set('proc:genProcData/date',today)
@@ -583,7 +597,7 @@ if __name__ == '__main__':
                                             #set the status to Upload :
                                             if os.path.exists(os.path.join(assessor_path,'READY_TO_UPLOAD.txt')):
                                                 ASSESSOR.attrs.set('fs:fsData/procstatus', UPLOADING)
-                                            Upload_FreeSurfer(xnat,assessor_path,ProjectName,Subject,Experiment,assessor_label)
+                                            Upload_FreeSurfer(xnat,assessor_path,ProjectName,Subject,Experiment,assessor_label,version)
                                     ################# Default Assessor #################
                                     else:
                                         if ASSESSOR.attrs.get('proc:genProcData/procstatus')=='READY_TO_COMPLETE' or ASSESSOR.attrs.get('proc:genProcData/procstatus')=='COMPLETE':
@@ -595,7 +609,7 @@ if __name__ == '__main__':
                                             #set the status to Upload :
                                             if os.path.exists(os.path.join(assessor_path,'READY_TO_UPLOAD.txt')):
                                                 ASSESSOR.attrs.set('proc:genProcData/procstatus', UPLOADING)
-                                            Uploading_Assessor(xnat,assessor_path,ProjectName,Subject,Experiment,assessor_label)
+                                            Uploading_Assessor(xnat,assessor_path,ProjectName,Subject,Experiment,assessor_label,version)
                                     
                             else:
                                 print 'ERROR: The folder '+assessor_label+' has a wrong ProjectName or Subject label or Experiment label.'

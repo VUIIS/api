@@ -1,7 +1,7 @@
 import socket
 
 from pyxnat import Interface
-import os, sys, shutil
+import os, sys, shutil, re
 from datetime import datetime
 import redcap
 from lxml import etree
@@ -10,7 +10,7 @@ from lxml import etree
 #            Class JobHandler to copy file after the end of a Job                  #
 ####################################################################################   
 class SpiderProcessHandler:
-    def __init__(self,ProcessName,project,subject,experiment,scan=''):
+    def __init__(self,script_name,project,subject,experiment,scan=''):
         #set the email env to send the email if a job fail
         try:
             # Environs
@@ -18,13 +18,28 @@ class SpiderProcessHandler:
         except KeyError as e:
             print "You must set the environment variable %s. The email with errors will be send with this address." % str(e)
             sys.exit(1)
-
+            
+        if len(script_name.split('/'))>1:
+            script_name=os.path.basename(script_name)
+        if script_name.endswith('.py'):
+            script_name=script_name[:-3]
+        if 'Spider' in script_name:
+            script_name=script_name[7:]
+            
+        #ge the processname from spider
+        if len(re.split("/*_v[0-9]/*", script_name))>1:
+            self.version = script_name.split('_v')[-1]
+            self.ProcessName=re.split("/*_v[0-9]/*", script_name)[0]+'_v'+self.version.split('.')[0]
+        else:
+            self.version = '1.0.0'
+            self.ProcessName=script_name
+        
         #make the assessor folder for upload
         if scan=='':
-            self.assessor_label=project+'-x-'+subject+'-x-'+experiment+'-x-'+ProcessName
+            self.assessor_label=project+'-x-'+subject+'-x-'+experiment+'-x-'+self.ProcessName
             self.dir=UploadDir+'/'+self.assessor_label
         else:
-            self.assessor_label=project+'-x-'+subject+'-x-'+experiment+'-x-'+scan+'-x-'+ProcessName
+            self.assessor_label=project+'-x-'+subject+'-x-'+experiment+'-x-'+scan+'-x-'+self.ProcessName
             self.dir=UploadDir+'/'+self.assessor_label
         #if the folder already exists : remove it
         if not os.path.exists(self.dir):
@@ -39,7 +54,6 @@ class SpiderProcessHandler:
         self.subject=subject
         self.experiment=experiment
         self.scan=scan
-        self.ProcessName=ProcessName
         self.finish=0
         self.error=0
 
@@ -132,11 +146,19 @@ class SpiderProcessHandler:
 
             assessor=xnat.select('/project/'+self.project+'/subjects/'+self.subject+'/experiments/'+self.experiment+'/assessors/'+self.assessor_label)
             if assessor.exists():
-                assessor.attrs.set('proc:genProcData/procstatus',status)
+                if 'FS' or 'FreeSurfer' in self.assessor_label.split('-x-')['-1']:
+                    assessor.attrs.set('fs:fsdata/procstatus',status)
+                else:
+                    assessor.attrs.set('proc:genProcData/procstatus',status)
         finally:
             xnat.disconnect()
 
     def done(self):
+        #creating the version file to give the spider version:
+        f=open(os.path.join(self.dir,'version.txt'),'w')
+        f.write(self.version)
+        f.close()
+        #Finish the folder
         if self.finish and not self.error:
             print'INFO: Job ready to be upload, error: '+ str(self.error)
             #make the flag folder
@@ -511,6 +533,10 @@ def list_assessor_out_resources(intf, projectid, subjectid, experimentid, assess
     post_uri = '/REST/projects/'+projectid+'/subjects/'+subjectid+'/experiments/'+experimentid+'/assessors/'+assessorid+'/out/resources'
     resource_list = intf._get_json(post_uri)
     return resource_list
+    
+def select_assessor(intf,assessor_label):
+    labels=assessor_label.split('-x-')
+    return intf.select('/project/'+labels['0']+'/subject/'+labels['1']+'/experiment/'+labels['2']+'/assessor/'+assessor_label)
 
 def get_full_object(intf,obj_dict):
     if 'scan_id' in obj_dict:

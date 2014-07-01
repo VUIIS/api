@@ -1,5 +1,5 @@
 import task
-import os
+import os,re
 import XnatUtils
 from os.path import expanduser
 from datetime import datetime
@@ -8,12 +8,38 @@ USER_HOME = expanduser("~")
 DEFAULT_MASIMATLAB_PATH = os.path.join(USER_HOME,'masimatlab')
 
 class Processor(object):
-    def __init__(self,walltime_str,memreq_mb,name,ppn=1,xsitype='proc:genProcData'):
+    def __init__(self,walltime_str,memreq_mb,spider_path,version=None,masimatlab=DEFAULT_MASIMATLAB_PATH,ppn=1,xsitype='proc:genProcData'):
         self.walltime_str=walltime_str # 00:00:00 format
         self.memreq_mb=memreq_mb  # memory required in megabytes      
-        self.name=name 
+        self.masimatlab=masimatlab
+        self.set_spider_settings(spider_path,version)
         self.ppn = ppn
         self.xsitype = xsitype
+
+    #get the spider_path right with the version:
+    def set_spider_settings(self,spider_path,version):
+        if version:
+            #get the proc_name
+            proc_name=os.path.basename(spider_path)[7:-3]
+            #remove any version if there is one
+            proc_name=re.split("/*_v[0-9]/*", proc_name)[0]
+            #setting the version and name of the spider
+            self.version = version
+            self.name = proc_name+'_v'+self.version.split('.')[0]
+            self.spider_path = os.path.join(os.path.dirname(spider_path),'Spider_'+proc_name+'_v'+version+'.py')
+        else:
+            self.default_settings_spider(spider_path)
+    
+    def default_settings_spider(self,spider_path):
+        #set spider path
+        self.spider_path = spider_path
+        #set the name and the version of the spider
+        if len(re.split("/*_v[0-9]/*", spider_path))>1:
+            self.version = os.path.basename(spider_path)[7:-3].split('_v')[-1]
+            self.name = re.split("/*_v[0-9]/*", os.path.basename(spider_path)[7:-3])[0] +'_v'+ self.version.split('.')[0]
+        else:
+            self.version = '1.0.0'
+            self.name = os.path.basename(spider_path)[7:-3]
 
     # has_inputs - does this object have the required inputs? e.g. NIFTI format of the required scan type and quality and are there no conflicting inputs, i.e. only 1 required by 2 found?
     def has_inputs(): # what other arguments here, could be Project/Subject/Session/Scan/Assessor depending on type of processor?
@@ -33,8 +59,9 @@ class ScanProcessor(Processor):
     def should_run(): 
         raise NotImplementedError()
     
-    def __init__(self,walltime_str,memreq_mb,name, ppn=1):
-        super(ScanProcessor, self).__init__(walltime_str, memreq_mb, name, ppn)
+    def __init__(self,scan_types,walltime_str,memreq_mb,spider_path,version=None,masimatlab=DEFAULT_MASIMATLAB_PATH, ppn=1):
+        super(ScanProcessor, self).__init__(walltime_str, memreq_mb,spider_path,version,masimatlab,ppn)
+        self.scan_types=scan_types
          
     def get_assessor_name(self,scan_dict):
         subj_label = scan_dict['subject_label']
@@ -56,8 +83,8 @@ class SessionProcessor(Processor):
     def should_run(): 
         raise NotImplementedError()
     
-    def __init__(self,walltime_str,memreq_mb,name,ppn=1):
-        super(SessionProcessor, self).__init__(walltime_str,memreq_mb,name,ppn)
+    def __init__(self,walltime_str,memreq_mb,spider_path,version=None,masimatlab=DEFAULT_MASIMATLAB_PATH,ppn=1):
+        super(SessionProcessor, self).__init__(walltime_str,memreq_mb,spider_path,version,masimatlab,ppn)
         
     def get_assessor_name(self,session_dict):  
         proj_label = session_dict['project']
