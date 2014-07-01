@@ -149,7 +149,7 @@ def check_process(process_file):
     
     try:
         output = subprocess.check_output(cmd, stderr=subprocess.STDOUT, shell=True)
-        if len(output.split('\n'))>3:
+        if len(output.split('\n'))>=3:
             #three because one is warning, two is the line we just do (ps -aux ...) and three is empty line
             #there is a process running
             return 0
