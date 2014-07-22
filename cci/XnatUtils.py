@@ -110,6 +110,9 @@ class SpiderProcessHandler:
             #mv the file
             print'  -Copying '+Resource+': '+filePath+' to '+self.dir
             os.system('cp '+filePath+' '+self.dir+'/'+Resource+'/')
+            #if it's a nii or a rec file, gzip it:
+            if filePath.lower().endswith('.nii') or filePath.lower().endswith('.rec'):
+                os.system('gzip '+os.path.join(self.dir,Resource,os.path.basename(filePath)))
 
     def add_folder(self,FolderPath,ResourceName=None):
         #check if the folder exists:
