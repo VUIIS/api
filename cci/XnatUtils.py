@@ -588,9 +588,13 @@ def get_resource_lastdate_modified(xnat,resource):
     
     # Find the most recent time
     all_times = create_times + mod_times
-    max_time = max(all_times)
-    date = max_time.split('.')[0]
-    return date.split('T')[0].replace('-','')+date.split('T')[1].replace(':','')
+    if all_times:
+        max_time = max(all_times)
+        date = max_time.split('.')[0]
+        res_date=date.split('T')[0].replace('-','')+date.split('T')[1].replace(':','')
+    else:
+        res_date=('{:%Y-%m-%d %H:%M:%S}'.format(datetime.now())).strip().replace('-','').replace(':','').replace(' ','')
+    return res_date
 
 
 ####################################################################################
