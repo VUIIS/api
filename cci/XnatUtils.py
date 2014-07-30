@@ -1086,3 +1086,12 @@ def pi_from_project(project):
     finally:
         xnat.disconnect()
         return pi
+        
+def print_args(options):
+    print "--Arguments given to the spider--"
+    for info,value in vars(options).items():
+        if value:
+            print info,": ", value
+        else:
+            print info,": Not set. The process might fail without this argument."
+    print "---------------------------------"
