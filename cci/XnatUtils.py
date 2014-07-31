@@ -1095,3 +1095,15 @@ def print_args(options):
         else:
             print info,": Not set. The process might fail without this argument."
     print "---------------------------------"
+
+def makedir(jobdir):
+    if not os.path.exists(jobdir):
+        os.mkdir(jobdir)
+    else:
+        today=datetime.now()
+        jobdir=jobdir+'/TempDir_'+str(today.year)+'_'+str(today.month)+'_'+str(today.day)
+        if not os.path.exists(jobdir):
+            os.mkdir(jobdir)
+        else:
+            clean_directory(jobdir)
+    return jobdir
